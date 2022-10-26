@@ -1,0 +1,57 @@
+
+#left {
+    background-color: rgb(80, 176, 80);
+    position: relative;
+    float: left;
+    border: 2px solid #003B62;
+    padding: 10px;
+}
+
+#middle {
+    background-color: rgb(223, 209, 107);
+    position: relative;
+    float: left;
+    border: 2px solid #003B62;
+    padding: 10px;
+}
+
+.manipulations {
+    background-color: rgb(240, 230, 157);
+    
+    
+    border: 1px solid #003B62;
+    padding: 10px;
+}
+
+
+#p1{
+    position: relative;
+    float: right;
+}
+
+#p2{
+    position: relative;
+    float: right;
+}
+
+
+.calculations {
+    background-color: rgb(160, 225, 160);
+    
+    border: 1px solid #003B62;
+    padding: 10px;
+}
+
+#scores {
+    background-color: rgb(144, 214, 238);
+    position: relative;
+    float: right;
+    border: 2px solid #003B62;
+    padding-left: 10px;
+}
+
+.requestBox {
+    background-color: rgb(200, 199, 187);
+    border: 2px solid #003B62;
+    padding-left: 10px;   
+}

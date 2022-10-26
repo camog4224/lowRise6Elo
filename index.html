@@ -1,0 +1,114 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <title>Low Rise 6 Elo</title>
+</head>
+<body>
+    <div id = "navBar"></div>
+    <div id = "left">
+        <div class = "calculations">
+            <label for="1elo">First Elo:</label><br>
+            <input type="text" id="1elo" name="1elo"><br>
+            <label for="2elo">Second Elo:</label><br>
+            <input type="text" id="2elo" name="2elo">
+            
+            <div>Winner Was : </div>
+
+            <input type="radio" id="aWinner" name="winner" value="aWinner" checked>
+            <label for="aWinner">A</label><br>
+            <input type="radio" id="bWinner" name="winner" value="bWinner">
+            <label for="bWinner">B</label><br>
+            
+            <br>
+            <input id = "sub" type="submit" value="Submit">
+            
+            
+            <br>
+            <div>
+                Probability of A winning : 
+            </div>
+            
+            <div id = "E1"></div>
+            <br>
+            <div>
+                Probability of B winning : 
+            </div>
+            <div id = "E2"> </div>
+            <br>
+            
+            <div>
+                New Elo of A : 
+            </div>
+            
+            <div id = "Re1"></div>
+            <br>
+            <div>
+                New Elo of B : 
+            </div>
+            
+            <div id = "Re2"></div>
+        </div>
+        <div class = "calculations">
+            <div>
+                <div>Person A : </div>
+                <select id = "p1"></select>
+            </div>
+            <br>
+            <div>
+                <div>Person B : </div>
+                <select id = "p2"></select>
+            </div>
+            <br>
+            
+            <input id = "subMatch" type="submit" value="Submit">
+            <div>
+                Probability of A winning : 
+            </div>
+            
+            <div id = "me1"></div>
+            <br>
+            <div>
+                Probability of B winning : 
+            </div>
+            <div id = "me2"> </div>
+        </div>
+    </div>
+    <div id = "middle">
+        <div class = "manipulations">
+            <div>
+                <div>Person A : </div>
+                <select id = "s1"></select>
+            </div>
+            <br>
+            <div>
+                <div>Person B : </div>
+                <select id = "s2"></select>
+            </div>
+            <div>Winner Was : </div>
+
+            <input type="radio" id="saWinner" name="Rwinner" value="aWinner" checked>
+            <label for="aWinner">A</label><br>
+            <input type="radio" id="sbWinner" name="Rwinner" value="bWinner">
+            <label for="bWinner">B</label><br>
+            
+            <input id = "subSend" type="submit" value="Submit">
+        </div>
+        <div class = "manipulations">
+            <label for="newPlayer">New Person:</label><br>
+            <input type="text" id="newPlayer" name="newPlayer"><br>
+            <input id = "subNewP" type="submit" value="Submit">
+        </div>
+    </div>
+    <div id = "scores">
+        <table id = "scoreTable"></table>
+    </div>
+    <script type = "module" src = "/index.js"></script>
+    <script type = "module" src="/script.js"></script>
+    
+</body>
+</html>

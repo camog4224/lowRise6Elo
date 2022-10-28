@@ -1,25 +1,26 @@
 
-import {eloRankedDocs, allDocs, getPlayer, matchUp, addPlayer} from "/index.js";
+import {eloRankedDocs, allDocs, getPlayer, matchUp, addPlayer, addGameRequest, removeGameRequest, requestDocs} from "/index.js";
 
-let elo1 = document.getElementById("1elo");
-let elo2 = document.getElementById("2elo");
+// let elo1 = document.getElementById("1elo");
+// let elo2 = document.getElementById("2elo");
 
-let E1 = document.getElementById("E1");
-let E2 = document.getElementById("E2");
+// let E1 = document.getElementById("E1");
+// let E2 = document.getElementById("E2");
 
-let Re1 = document.getElementById("Re1");
-let Re2 = document.getElementById("Re2");
+// let Re1 = document.getElementById("Re1");
+// let Re2 = document.getElementById("Re2");
 
-let button = document.getElementById("sub");
-button.addEventListener("click", calculate);
+// let button = document.getElementById("sub");
+// button.addEventListener("click", calculate);
 
-var scores = document.getElementById("scores");
 
 // let playerMatchUp = document.getElementById("matchUps");
-let p1 = document.getElementById("p1");
-let p2 = document.getElementById("p2");
-let matchButton = document.getElementById("subMatch");
-matchButton.addEventListener("click", testMatch);
+// let p1 = document.getElementById("p1");
+// let p2 = document.getElementById("p2");
+// let matchButton = document.getElementById("subMatch");
+// matchButton.addEventListener("click", testMatch);
+
+let scores = document.getElementById("scores");
 
 let ME1 = document.getElementById("me1");
 let ME2 = document.getElementById("me2");
@@ -33,13 +34,13 @@ let newP = document.getElementById("newPlayer");
 let addButton = document.getElementById("subNewP");
 addButton.addEventListener("click", requestPlayer);
 
-let requestChannel = document.getElementById("requests");
-
+let requestParent = document.getElementById("requests");
 
 const k = 32.;
 const d = 400.;
 
-function makeMatchRequest(){
+async function makeMatchRequest(){
+    // let requestChannel = document.getElementById("requests");
     let name1 = s1.value;
     let name2 = s2.value;
     if(name1 == name2){
@@ -49,16 +50,62 @@ function makeMatchRequest(){
     let checkOption = document.querySelector('input[name="Rwinner"]:checked');
     let v1 = checkOption.value;
 
-    let rBox = document.createElement("div");
-    rBox.classList.add("requestBox");
+    // let rBox = document.createElement("div");
+    // rBox.classList.add("requestBox");
     let vP = "schmuck";
     if(v1 == "aWinner"){
+        v1 = true;
         vP = name1;
     }else{
+        v1 = false;
         vP = name2;
     }
-    rBox.innerHTML = "Please add game between " + name1 + " and " + name2 + " where " + vP + " won";
+
+
+    // rBox.innerHTML = "Please add game between " + name1 + " and " + name2 + " where " + vP + " won";
+    let dbInfo = {
+        "requester" : name1,
+        "opponent" : name2,
+        "time" : Date.now(),
+        "readableTime" : "" + new Date(Date.now()),
+        "requesterWin" : v1
+    }
+    let requestId = await addGameRequest(dbInfo);
+    let boxInfo = {
+        "name1" : name1,
+        "name2" : name2,
+        "v1" : v1,
+        "readableTime" : "" + new Date(Date.now()),
+        "requestId" : requestId
+    }
+    makeHTMLRequestBox(boxInfo);
+    getRequests();
+}
+
+async function resolveMatchRequest(reqBox){
+    console.log("resolve Request Called");
+    await removeGameRequest(reqBox.dataset.id);
+    reqBox.remove();
+    getRequests();
+}
+
+function makeHTMLRequestBox(info){
+    let requestChannel = document.getElementById("inputRequests");
+    let rBox = document.createElement("div");
+    rBox.classList.add("requestBox");
+    let vP;
+    if(info.v1 == true){
+        vP = info.name1;
+    }else{
+        vP = info.name2;
+    }
+    rBox.innerHTML = "Request to add game between " + info.name1 + " and " + info.name2 + " where " + vP + " won on : " + info.readableTime;
+    rBox.dataset.id = info.requestId;
+    rBox.addEventListener("click", function(){
+        resolveMatchRequest(rBox);
+    });
     requestChannel.append(rBox);
+    
 }
 
 function makePlayerRequest(name){
@@ -182,8 +229,8 @@ async function loadMatchUpPlayers(){
     for(let i = 0; i < numPlayers; i++){
         let tempOption = document.createElement("option");
         tempOption.text = allPlayerInfo[i].name;
-        p1.add(tempOption);
-        p2.add(tempOption.cloneNode(true));
+        // p1.add(tempOption);
+        // p2.add(tempOption.cloneNode(true));
         s1.add(tempOption.cloneNode(true));
         s2.add(tempOption.cloneNode(true));
     }
@@ -218,5 +265,37 @@ async function getScores(){
     // scores = tempTable;
 }
 
+async function getRequests(){
+    let requestChannel = document.getElementById("inputRequests");
+    requestChannel.remove();
+    
+    let tempChannel = document.createElement("DIV");
+    tempChannel.id = "inputRequests";
+    requestParent.append(tempChannel);
+
+    let allRequestInfo = await requestDocs();
+    // console.log(allRequestInfo);
+    let numRequests = allRequestInfo.length;
+    
+    for(let i = 0; i < numRequests; i++){
+        let simpleInfo = {
+            "name1" : allRequestInfo[i].requester,
+            "name2" : allRequestInfo[i].opponent,
+            "v1" : allRequestInfo[i].requesterWin,
+            "readableTime" : cleanDate(allRequestInfo[i].readableTime),
+            "requestId" : allRequestInfo[i].id
+        }
+        makeHTMLRequestBox(simpleInfo);
+    }
+
+
+}
+
+function cleanDate(dateString){
+    let i = dateString.indexOf("GMT");
+    return dateString.slice(0, i-1);
+}
+
 getScores();
+getRequests();
 loadMatchUpPlayers();

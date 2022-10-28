@@ -2,7 +2,7 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.12.1/firebase-app.js";
 import { 
-  getFirestore, collection, getDocs, query, where, doc, getDoc,
+  getFirestore, collection, getDocs, query, where, doc, getDoc, deleteDoc,
   setDoc, addDoc, updateDoc, runTransaction, orderBy, onSnapshot
 } from "https://www.gstatic.com/firebasejs/9.12.1/firebase-firestore.js";
 import { getDatabase, ref, child, push, update, set} from "https://www.gstatic.com/firebasejs/9.12.1/firebase-database.js";
@@ -69,6 +69,32 @@ export async function addPlayer(name){
   };
   await setDoc(doc(db, "playerInfo", name), data);
   // await setDoc(collection(db, "playerInfo", name), );
+}
+
+export async function addGameRequest(info){
+
+  // await setDoc(doc(db, "pendingGames", "UNIQUE ID"), info);
+
+  const docRef = await addDoc(collection(db, "pendingGames"),info);
+
+  return docRef.id;
+}
+
+export async function removeGameRequest(id){
+
+  await deleteDoc(doc(db, "pendingGames", id));
+  
+}
+
+export async function requestDocs(){
+  const querySnapshot = await getDocs(collection(db, "pendingGames"));
+  let completeInfo = [];
+  await querySnapshot.forEach((doc) => {
+    let d = doc.data();
+    d.id = doc.id;
+    completeInfo = completeInfo.concat([d]);
+  });
+  return completeInfo;
 }
 
 // addPlayer("Evan");

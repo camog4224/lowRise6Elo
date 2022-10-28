@@ -9,7 +9,9 @@
     <title>Low Rise 6 Elo</title>
 </head>
 <body>
-    <div id = "navBar"> Hello!</div>
+    <div id = "navBar"> Hello!
+
+    </div>
     <div id = "left">
         <div class = "calculations">
             <label for="1elo">First Elo:</label><br>
@@ -53,6 +55,7 @@
             
             <div id = "Re2"></div>
         </div>
+        <br>
         <div class = "calculations">
             <div>
                 <div>Person A : </div>
@@ -79,33 +82,44 @@
         </div>
     </div>
     <div id = "middle">
-        <div class = "manipulations">
-            <div>
-                <div>Person A : </div>
-                <select id = "s1"></select>
+        <div id = "yellowMiddle">
+            <div class = "manipulations">
+                <div>
+                    <div>Person A : </div>
+                    <select id = "s1"></select>
+                </div>
+                <br>
+                <div>
+                    <div>Person B : </div>
+                    <select id = "s2"></select>
+                </div>
+                <div>Winner Was : </div>
+
+                <input type="radio" id="saWinner" name="Rwinner" value="aWinner" checked>
+                <label for="aWinner">A</label><br>
+                <input type="radio" id="sbWinner" name="Rwinner" value="bWinner">
+                <label for="bWinner">B</label><br>
+                
+                <input id = "subSend" type="submit" value="Submit">
             </div>
             <br>
-            <div>
-                <div>Person B : </div>
-                <select id = "s2"></select>
+            <div class = "manipulations">
+                <label for="newPlayer">New Person:</label><br>
+                <input type="text" id="newPlayer" name="newPlayer"><br>
+                <input id = "subNewP" type="submit" value="Submit">
             </div>
-            <div>Winner Was : </div>
-
-            <input type="radio" id="saWinner" name="Rwinner" value="aWinner" checked>
-            <label for="aWinner">A</label><br>
-            <input type="radio" id="sbWinner" name="Rwinner" value="bWinner">
-            <label for="bWinner">B</label><br>
-            
-            <input id = "subSend" type="submit" value="Submit">
+            <br>
         </div>
-        <div class = "manipulations">
-            <label for="newPlayer">New Person:</label><br>
-            <input type="text" id="newPlayer" name="newPlayer"><br>
-            <input id = "subNewP" type="submit" value="Submit">
-        </div>
+        
     </div>
     <div id = "scores">
         <table id = "scoreTable"></table>
+    </div>
+    <div id = "requests">
+        <br>
+        <div class = "requestBox">
+            Look at this request!
+        </div>
     </div>
     <script type = "module" src = "/index.js"></script>
     <script type = "module" src="/script.js"></script>

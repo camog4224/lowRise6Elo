@@ -27,22 +27,55 @@ let ME2 = document.getElementById("me2");
 let s1 = document.getElementById("s1");
 let s2 = document.getElementById("s2");
 let sendButton = document.getElementById("subSend");
-sendButton.addEventListener("click", requestMatch);
+sendButton.addEventListener("click", makeMatchRequest);
 
 let newP = document.getElementById("newPlayer");
 let addButton = document.getElementById("subNewP");
 addButton.addEventListener("click", requestPlayer);
 
+let requestChannel = document.getElementById("requests");
+
 
 const k = 32.;
 const d = 400.;
 
+function makeMatchRequest(){
+    let name1 = s1.value;
+    let name2 = s2.value;
+    if(name1 == name2){
+        console.log("can't submit same person!");
+        return;
+    }
+    let checkOption = document.querySelector('input[name="Rwinner"]:checked');
+    let v1 = checkOption.value;
+
+    let rBox = document.createElement("div");
+    rBox.classList.add("requestBox");
+    let vP = "schmuck";
+    if(v1 == "aWinner"){
+        vP = name1;
+    }else{
+        vP = name2;
+    }
+    rBox.innerHTML = "Please add game between " + name1 + " and " + name2 + " where " + vP + " won";
+    requestChannel.append(rBox);
+}
+
+function makePlayerRequest(name){
+    let rBox = document.createElement("div");
+    rBox.classList.add("requestBox");
+    rBox.dataset.name = name;
+    rBox.innerHTML = "Please add : " + name;
+    requestChannel.append(rBox);
+}
+
 async function requestPlayer(){
     let name = newP.value;
     if(await getPlayer(name) == -1){
-        await addPlayer(name);
+        // await addPlayer(name);
+        makePlayerRequest(name);
     }
-    getScores();
+    // getScores();
 }
 
 async function requestMatch(){

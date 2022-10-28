@@ -7,18 +7,25 @@
     padding: 10px;
 }
 
+#requests {
+    clear: both;
+}
+
 #middle {
-    background-color: rgb(223, 209, 107);
     position: relative;
     float: left;
+    width: auto;
+}
+
+#yellowMiddle{
+    background-color: rgb(223, 209, 107);
     border: 2px solid #003B62;
     padding: 10px;
+    width: fit-content;
 }
 
 .manipulations {
     background-color: rgb(240, 230, 157);
-    
-    
     border: 1px solid #003B62;
     padding: 10px;
 }
@@ -53,5 +60,10 @@
 .requestBox {
     background-color: rgb(200, 199, 187);
     border: 2px solid #003B62;
-    padding-left: 10px;   
+    padding-left: 10px;
+    margin-left: 10px;
+    margin-bottom: 10px;
+    height: 100px;
+    width: 100px;
+    float: left;
 }

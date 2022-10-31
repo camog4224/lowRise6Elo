@@ -1,5 +1,8 @@
 
-import {eloRankedDocs, allDocs, getPlayer, matchUp, addPlayer, addGameRequest, removeGameRequest, requestDocs} from "/index.js";
+// import {eloRankedDocs, allDocs, getPlayer, matchUp, addPlayer, 
+//     addGameRequest, removeGameRequest, requestDocs, getRequest, 
+//     askForSignIn, signInResults, signOutUser} from "/index.js";
+      
 
 // let elo1 = document.getElementById("1elo");
 // let elo2 = document.getElementById("2elo");
@@ -36,17 +39,278 @@ addButton.addEventListener("click", requestPlayer);
 
 let requestParent = document.getElementById("requests");
 
+let signInButton = document.getElementById("signSend");
+signInButton.addEventListener("click", tempO);
+
+let signOutButton = document.getElementById("outSend");
+signOutButton.addEventListener("click", signOutUser);
+
+let signResultButton = document.getElementById("resultSend");
+signResultButton.addEventListener("click", signInResults);
+
+let userDisplay = document.getElementById("userDisplay");
+
+
+
 const k = 32.;
 const d = 400.;
+
+
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.12.1/firebase-app.js";
+import { 
+  getFirestore, collection, getDocs, query, where, doc, getDoc, deleteDoc,
+  setDoc, addDoc, updateDoc, runTransaction, orderBy, onSnapshot
+} from "https://www.gstatic.com/firebasejs/9.12.1/firebase-firestore.js";
+import { getDatabase, ref, child, push, update, set} from "https://www.gstatic.com/firebasejs/9.12.1/firebase-database.js";
+import { GoogleAuthProvider, signInWithRedirect, getRedirectResult, getAuth,
+  signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.12.1/firebase-auth.js";
+
+//firebase deploy --only hosting,database,firestore
+
+
+const firebaseConfig = {
+  apiKey: "AIzaSyA1RIrA-DJxWj3yzc-RqQqXTTLnW0bXSKM",
+  authDomain: "lr6elo.firebaseapp.com",
+  projectId: "lr6elo",
+  storageBucket: "lr6elo.appspot.com",
+  messagingSenderId: "244570148069",
+  appId: "1:244570148069:web:82659bdde22e85f18cd80c",
+  measurementId: "G-5JSRB6JR91"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const provider = new GoogleAuthProvider();
+
+const auth = getAuth();
+
+async function askForSignIn(){
+  signInWithRedirect(auth, provider);
+}
+
+const thing = "244570148069-6is73a7sohagu36v3bhov3s3at1hluvp.apps.googleusercontent.com";
+
+async function signInResults(){
+  console.log("running get results");
+    
+}
+
+async function signOutUser(){
+  signOut(auth).then(() => {
+    // Sign-out successful.
+    console.log("signed out");
+    userDisplay.innerHTML = "Signed in as : ---";
+  }).catch((error) => {
+    // An error happened.
+  });
+}
+
+
+async function addPlayer(name){
+  let data = {
+    elo: [1000],
+    currentElo: 1000,
+    victories: [],
+    wins: 0,
+    losses: 0,
+    gamesPlayed: 0,
+    time : [Date.now()],
+    readableTime: ["" + new Date(Date.now())]
+  };
+  await setDoc(doc(db, "playerInfo", name), data);
+  // await setDoc(collection(db, "playerInfo", name), );
+}
+
+async function addGameRequest(info){
+
+  // await setDoc(doc(db, "pendingGames", "UNIQUE ID"), info);
+
+  const docRef = await addDoc(collection(db, "pendingGames"),info);
+
+  return docRef.id;
+}
+
+async function removeGameRequest(id){
+
+  await deleteDoc(doc(db, "pendingGames", id));
+  
+}
+
+async function requestDocs(){
+  const querySnapshot = await getDocs(collection(db, "pendingGames"));
+  let completeInfo = [];
+  await querySnapshot.forEach((doc) => {
+    let d = doc.data();
+    d.id = doc.id;
+    completeInfo = completeInfo.concat([d]);
+  });
+  return completeInfo;
+}
+
+async function getRequest(id){
+  const docRef = doc(db, "pendingGames", id);
+  const docSnap = await getDoc(docRef);
+
+  if (docSnap.exists()) {
+    // console.log("Document data:", docSnap.data());
+    return await docSnap.data();
+  } else {
+  // doc.data() will be undefined in this case
+  // console.log("No such document!");
+  return -1;
+  }
+}
+
+async function updatePlayer(name, newElo, victory, t, rt) {
+  const sfRef = doc(db, "playerInfo", name);
+  try {
+    await runTransaction(db, async (transaction) => {
+      const sfDoc = await transaction.get(sfRef);
+      let info = await sfDoc.data();
+      if (!sfDoc.exists()) {
+        throw "Document does not exist!";
+      }
+      // console.log(info);
+      let data = {
+        elo: info.elo.concat(newElo),
+        currentElo: newElo,
+        victories: info.victories.concat(victory),
+        wins: info.wins + Boolean(victory),
+        losses: info.losses + 1-Boolean(victory),
+        gamesPlayed: info.gamesPlayed + 1,
+        time : info.time.concat(t),
+        readableTime: info.readableTime.concat(rt)
+      };
+      // console.log(data);
+      transaction.update(sfRef, data);
+    });
+    console.log("Transaction successfully committed!");
+  } catch (e) {
+    console.log("Transaction failed: ", e);
+  }
+}
+
+// updatePlayer("Evan", 1100, true);
+
+function matchUp(name1, name2, v1, elo1, elo2, t, tr){
+  updatePlayer(name1, elo1, v1, t, tr);
+  updatePlayer(name2, elo2, !v1, t, tr);
+}
+
+// matchUp("Camilo", "Evan", true, 1150, 950);
+
+async function allDocsOfPerson(name){
+  const q = query(collection(db, "playerInfo"), where("name", "==", name));
+  const querySnapshot = await getDocs(q);
+  // console.log(querySnapshot.docs);
+  return querySnapshot.docs;
+}
+
+async function allDocs(){
+  const querySnapshot = await getDocs(collection(db, "playerInfo"));
+  let completeInfo = [];
+  await querySnapshot.forEach((doc) => {
+    let d = doc.data();
+    d.name = doc.id;
+    completeInfo = completeInfo.concat([d]);
+  });
+  return completeInfo;
+}
+
+async function getPlayer(name){
+  const docRef = doc(db, "playerInfo", name);
+  const docSnap = await getDoc(docRef);
+
+  if (docSnap.exists()) {
+    // console.log("Document data:", docSnap.data());
+    return await docSnap.data();
+  } else {
+  // doc.data() will be undefined in this case
+  // console.log("No such document!");
+  return -1;
+  }
+}
+
+// getPlayer("Camilo");
+
+async function eloRankedDocs(){
+  const ref = collection(db, "playerInfo");
+  const q = await query(ref, orderBy("currentElo", "desc"));
+  let temp = await getDocs(q);
+  let rankedElos = [];
+  await temp.forEach((doc) => {
+    let d = doc.data();
+    d.name = doc.id;
+    rankedElos = rankedElos.concat([d]);
+  });
+  return rankedElos;
+}
+
+//maybe use this
+// function toggleSignIn() {
+//     if (!firebase.auth().currentUser) {
+//       var provider = new firebase.auth.FacebookAuthProvider();
+//       provider.addScope('user_likes');
+//       firebase.auth().signInWithRedirect(provider);
+//     } else {
+//       firebase.auth().signOut();
+//     }
+//     document.getElementById('quickstart-sign-in').disabled = true;
+// }
+
+
+onAuthStateChanged(auth, (user) => {
+    if (user) {
+      // User is signed in, see docs for a list of available properties
+      // https://firebase.google.com/docs/reference/js/firebase.User
+    //   console.log("ligma");
+      const uid = user.uid;
+      console.log(user);
+      console.log(uid);
+      userDisplay.innerHTML = "Signed in as : " + user.displayName;
+      // ...
+    } else {
+      // User is signed out
+      // ...
+      console.log("Bye!");
+    }
+  }
+);
+
+async function tempO(){
+    await askForSignIn();
+}
+
 
 async function makeMatchRequest(){
     // let requestChannel = document.getElementById("requests");
     let name1 = s1.value;
     let name2 = s2.value;
+    
     if(name1 == name2){
         console.log("can't submit same person!");
         return;
     }
+
+    console.log("ask to sign in");
+    await askForSignIn();
+    console.log("between");
+    let signedInUser = await signInResults();
+    // console.log(signedInUser);
+    if(checkCornell(signedInUser.email) == false){
+        console.log("NOT CORNELL, FUCKING CRINGE")
+        return;
+    }else{
+        //check that signed in email is the same as one of the people requesting match
+        if((signedInUser.displayName == name1 || signedInUser.displayName == name2) == false){
+            console.log("requester is not one of the players!");
+            return;
+        }
+    }
+
     let checkOption = document.querySelector('input[name="Rwinner"]:checked');
     let v1 = checkOption.value;
 
@@ -80,13 +344,22 @@ async function makeMatchRequest(){
     }
     makeHTMLRequestBox(boxInfo);
     getRequests();
+    signOutUser();
 }
 
-async function resolveMatchRequest(reqBox){
+function checkCornell(emailString){
+    return Boolean(emailString.indexOf("@cornell.edu") > -1)
+}
+
+async function resolveMatchRequest(reqBox, approve){
     console.log("resolve Request Called");
+    let reqInfo = await getRequest(reqBox.dataset.id);
     await removeGameRequest(reqBox.dataset.id);
     reqBox.remove();
     getRequests();
+    if(approve == true){
+        await formalizeMatch(reqInfo);
+    }
 }
 
 function makeHTMLRequestBox(info){
@@ -101,9 +374,33 @@ function makeHTMLRequestBox(info){
     }
     rBox.innerHTML = "Request to add game between " + info.name1 + " and " + info.name2 + " where " + vP + " won on : " + info.readableTime;
     rBox.dataset.id = info.requestId;
-    rBox.addEventListener("click", function(){
-        resolveMatchRequest(rBox);
+
+    let tempBigDiv = document.createElement("div");
+
+    let accept = document.createElement("div");
+    accept.classList.add("acceptButton");
+    accept.innerHTML = "ACCEPT"
+    
+    //make accept button
+    accept.addEventListener("click", function(){
+        resolveMatchRequest(rBox, true);
     });
+    tempBigDiv.append(accept);
+    
+    let reject = document.createElement("div");
+    reject.classList.add("rejectButton");
+    reject.innerHTML = "REJECT"
+   
+    //make reject button
+    reject.addEventListener("click", function(){
+        resolveMatchRequest(rBox, false);
+    });
+    
+    tempBigDiv.append(reject);
+    tempBigDiv.classList.add("buttonGroup")
+    
+    rBox.append(tempBigDiv);
+
     requestChannel.append(rBox);
     
 }
@@ -119,10 +416,42 @@ function makePlayerRequest(name){
 async function requestPlayer(){
     let name = newP.value;
     if(await getPlayer(name) == -1){
-        // await addPlayer(name);
-        makePlayerRequest(name);
+        await addPlayer(name);
+        
     }
-    // getScores();
+    getScores();
+}
+
+async function formalizeMatch(startInfo){
+    let p1Info = await getPlayer(startInfo.requester);
+    let p2Info = await getPlayer(startInfo.opponent);
+
+    let ra = p1Info.currentElo * 1.0;
+    let rb = p2Info.currentElo * 1.0;
+
+    let qa = 10. ** (ra/d);
+    let qb = 10. ** (rb/d);
+
+    let ea = qa / (qa + qb);
+    let eb = qb / (qa + qb);
+
+    let sa;
+    let sb;
+    
+    if(startInfo.requesterWin == true){
+        sa = 1.;
+        sb = 0.;
+        
+    }else{
+        sa = 0.;
+        sb = 1.;
+        
+    }
+    let rea = Math.round(ra + (k * (sa - ea)));
+    let reb = Math.round(rb + k * (sb - eb));
+    
+    matchUp(startInfo.requester, startInfo.opponent, startInfo.requesterWin, rea, reb, startInfo.time, startInfo.readableTime);
+    getScores();
 }
 
 async function requestMatch(){
@@ -166,7 +495,7 @@ async function requestMatch(){
     
     matchUp(s1.value, s2.value, winBool, rea, reb);
     getScores();
-    //try making request on html like popup box
+    
 }
 
 async function testMatch(){
@@ -247,6 +576,9 @@ async function getScores(){
     firstRow.insertCell(0).innerHTML = "Name";
     firstRow.insertCell(-1).innerHTML = "Elo";
     firstRow.insertCell(0).innerHTML = "Rank";
+    firstRow.insertCell(-1).innerHTML = "Win %";
+    firstRow.insertCell(-1).innerHTML = "Total Games";
+    firstRow.insertCell(-1).innerHTML = "Last Game";
 
     let allPlayerInfo = await eloRankedDocs();
     let numPlayers = allPlayerInfo.length;
@@ -259,6 +591,10 @@ async function getScores(){
         tempRow.insertCell(0).innerHTML = tempName;
         tempRow.insertCell(-1).innerHTML = "" + tempElo;
         tempRow.insertCell(0).innerHTML = i+1;
+        tempRow.insertCell(-1).innerHTML = "" + Math.floor(100*(tempPlayer.wins / tempPlayer.gamesPlayed)) + "%";
+        tempRow.insertCell(-1).innerHTML = tempPlayer.gamesPlayed;
+        // console.log(tempPlayer.readableTime[-]);
+        tempRow.insertCell(-1).innerHTML = cleanDate(tempPlayer.readableTime[tempPlayer.readableTime.length-1]);
     }
     // t1 = tempTable;
     scores.appendChild(tempTable);

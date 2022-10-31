@@ -30,6 +30,33 @@
     padding: 10px;
 }
 
+.acceptButton{
+    background-color: rgb(64, 255, 0);
+    height: 45px;
+    width: 45px;
+    border: 1px solid #003B62;
+    display: inline-block;
+    margin:auto;
+}
+
+.rejectButton{
+    background-color: rgb(255, 0, 0);
+    height: 45px;
+    width: 45px;
+    border: 1px solid #003B62;
+    display: inline-block;
+    margin:auto;
+}
+
+.buttonGroup{
+    display: inline-block;
+    font-size: x-small;
+    /* overflow-wrap: break-word; */
+    text-align: center;
+    vertical-align: middle;
+    line-height: 45px;
+}
+
 
 #p1{
     position: relative;
@@ -66,5 +93,7 @@
     
     height: 100px;
     width: 200px;
-    float: left;
+    /* float: left; */
+    display: inline-block;
+    
 }

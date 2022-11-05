@@ -1,9 +1,4 @@
-
-// import {eloRankedDocs, allDocs, getPlayer, matchUp, addPlayer, 
-//     addGameRequest, removeGameRequest, requestDocs, getRequest, 
-//     askForSignIn, signInResults, signOutUser} from "/index.js";
       
-
 // let elo1 = document.getElementById("1elo");
 // let elo2 = document.getElementById("2elo");
 
@@ -45,16 +40,16 @@ signInButton.addEventListener("click", tempO);
 let signOutButton = document.getElementById("outSend");
 signOutButton.addEventListener("click", signOutUser);
 
-let signResultButton = document.getElementById("resultSend");
-signResultButton.addEventListener("click", signInResults);
-
 let userDisplay = document.getElementById("userDisplay");
 
+let personID = document.getElementById("h1");
+let addIDButton = document.getElementById("subID");
+addIDButton.addEventListener("click", addID);
 
+let displayUserInfo = document.getElementById("displayInfo");
 
 const k = 32.;
 const d = 400.;
-
 
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.12.1/firebase-app.js";
@@ -93,24 +88,89 @@ async function askForSignIn(){
 
 const thing = "244570148069-6is73a7sohagu36v3bhov3s3at1hluvp.apps.googleusercontent.com";
 
-async function signInResults(){
-  console.log("running get results");
-    
+async function addID(){
+    let name = personID.value;
+    //if logged in
+    if(checkAccountStatus() == false){
+        console.log("no one signed in!");
+        displayUserInfo.innerHTML = "no one signed in";
+        return;
+    }
+    let curUser = auth.currentUser;
+    let curMatchingUsers = await matchingAccount(curUser.uid);
+    //if 
+    // console.log(curMatchingUsers);
+    if(curMatchingUsers.length > 0){
+        console.log("Player with this email already exists");
+        displayUserInfo.innerHTML = "Player with this email already exists";
+        return;
+    }
+
+    let curPlayerInfo = await getPlayer(name);
+    if(curPlayerInfo.euid != null){
+        displayUserInfo.innerHTML = "Player already has associated email";
+        return;
+    }
+
+    const sfRef = doc(db, "playerInfo", name);
+    try {
+        await runTransaction(db, async (transaction) => {
+            const sfDoc = await transaction.get(sfRef);
+            let info = await sfDoc.data();
+            if (!sfDoc.exists()) {
+                throw "Document does not exist!";
+            }
+            // console.log(info);
+            let data = {
+                euid: curUser.uid
+            };
+            // console.log(data);
+            transaction.update(sfRef, data);
+        });
+        // console.log("Transaction successfully committed!");
+        displayUserInfo.innerHTML = "ID ADDED";
+    } catch (e) {
+        // console.log("Transaction failed: ", e);
+    }
+}
+
+async function checkAccountStatus(){
+    let curUser = auth.currentUser;
+    if(curUser !== null){
+        return checkCornell(curUser.email);
+    }else{
+        return false;
+    }
 }
 
 async function signOutUser(){
   signOut(auth).then(() => {
     // Sign-out successful.
-    console.log("signed out");
+    
     userDisplay.innerHTML = "Signed in as : ---";
   }).catch((error) => {
     // An error happened.
   });
 }
 
+async function matchingAccount(euid){
+    const ref = collection(db, "playerInfo");
+    const q = await query(ref, where("euid", "==", euid));
+    // const q = await query(ref, orderBy("currentElo", "desc"));
+    let temp = await getDocs(q);
+    let matchingAccounts = [];
+    await temp.forEach((doc) => {
+      let d = doc.data();
+      d.name = doc.id;
+      matchingAccounts = matchingAccounts.concat([d]);
+    });
+    return matchingAccounts;
+  }
 
-async function addPlayer(name){
+
+async function addPlayer(name, euid){
   let data = {
+    euid: euid,
     elo: [1000],
     currentElo: 1000,
     victories: [],
@@ -187,20 +247,16 @@ async function updatePlayer(name, newElo, victory, t, rt) {
       // console.log(data);
       transaction.update(sfRef, data);
     });
-    console.log("Transaction successfully committed!");
+    // console.log("Transaction successfully committed!");
   } catch (e) {
     console.log("Transaction failed: ", e);
   }
 }
 
-// updatePlayer("Evan", 1100, true);
-
 function matchUp(name1, name2, v1, elo1, elo2, t, tr){
   updatePlayer(name1, elo1, v1, t, tr);
   updatePlayer(name2, elo2, !v1, t, tr);
 }
-
-// matchUp("Camilo", "Evan", true, 1150, 950);
 
 async function allDocsOfPerson(name){
   const q = query(collection(db, "playerInfo"), where("name", "==", name));
@@ -234,8 +290,6 @@ async function getPlayer(name){
   }
 }
 
-// getPlayer("Camilo");
-
 async function eloRankedDocs(){
   const ref = collection(db, "playerInfo");
   const q = await query(ref, orderBy("currentElo", "desc"));
@@ -249,33 +303,20 @@ async function eloRankedDocs(){
   return rankedElos;
 }
 
-//maybe use this
-// function toggleSignIn() {
-//     if (!firebase.auth().currentUser) {
-//       var provider = new firebase.auth.FacebookAuthProvider();
-//       provider.addScope('user_likes');
-//       firebase.auth().signInWithRedirect(provider);
-//     } else {
-//       firebase.auth().signOut();
-//     }
-//     document.getElementById('quickstart-sign-in').disabled = true;
-// }
-
 
 onAuthStateChanged(auth, (user) => {
     if (user) {
       // User is signed in, see docs for a list of available properties
       // https://firebase.google.com/docs/reference/js/firebase.User
-    //   console.log("ligma");
       const uid = user.uid;
-      console.log(user);
-      console.log(uid);
+    //   console.log(user);
+    //   console.log(uid);
       userDisplay.innerHTML = "Signed in as : " + user.displayName;
       // ...
     } else {
       // User is signed out
       // ...
-      console.log("Bye!");
+    //   console.log("Bye!");
     }
   }
 );
@@ -286,7 +327,7 @@ async function tempO(){
 
 
 async function makeMatchRequest(){
-    // let requestChannel = document.getElementById("requests");
+    //fix this, shouldn't determine requester and opponent off of selection boxes
     let name1 = s1.value;
     let name2 = s2.value;
     
@@ -294,21 +335,26 @@ async function makeMatchRequest(){
         console.log("can't submit same person!");
         return;
     }
+    let curUser = auth.currentUser;
+    // console.log(curUser);
 
-    console.log("ask to sign in");
-    await askForSignIn();
-    console.log("between");
-    let signedInUser = await signInResults();
-    // console.log(signedInUser);
-    if(checkCornell(signedInUser.email) == false){
-        console.log("NOT CORNELL, FUCKING CRINGE")
+    if(checkAccountStatus() == false){
         return;
+    }
+    let tempPlayer1 = await getPlayer(name1);
+    let tempPlayer2 = await getPlayer(name2);
+
+    if((curUser.uid == tempPlayer1.euid || curUser.uid == tempPlayer2.euid) == false){
+        console.log("requester is not one of the players");
+        return;
+    }
+
+    if(curUser.uid == tempPlayer1.euid){
+        //do nothing?
     }else{
-        //check that signed in email is the same as one of the people requesting match
-        if((signedInUser.displayName == name1 || signedInUser.displayName == name2) == false){
-            console.log("requester is not one of the players!");
-            return;
-        }
+        //if person who is signed in and requesting a game is the second person in the selection boxes, do :
+        name1 = s2.value;
+        name2 = s1.value;
     }
 
     let checkOption = document.querySelector('input[name="Rwinner"]:checked');
@@ -326,7 +372,7 @@ async function makeMatchRequest(){
     }
 
 
-    // rBox.innerHTML = "Please add game between " + name1 + " and " + name2 + " where " + vP + " won";
+    //make the requester and opponent values actually reflect requester and opponent
     let dbInfo = {
         "requester" : name1,
         "opponent" : name2,
@@ -344,7 +390,7 @@ async function makeMatchRequest(){
     }
     makeHTMLRequestBox(boxInfo);
     getRequests();
-    signOutUser();
+    // signOutUser();
 }
 
 function checkCornell(emailString){
@@ -352,13 +398,41 @@ function checkCornell(emailString){
 }
 
 async function resolveMatchRequest(reqBox, approve){
-    console.log("resolve Request Called");
+    // console.log("resolve Request Called");
     let reqInfo = await getRequest(reqBox.dataset.id);
-    await removeGameRequest(reqBox.dataset.id);
-    reqBox.remove();
-    getRequests();
+    if(checkAccountStatus() == false){
+        displayUserInfo.innerHTML = "log in to resolve request";
+        console.log("log in to resolve request");
+        return;
+    }
+    let curUser = auth.currentUser;
+    //if approving game then person must be opponent
     if(approve == true){
-        await formalizeMatch(reqInfo);
+        // let p1Info = await getPlayer(reqInfo.requester);
+        let p2Info = await getPlayer(reqInfo.opponent);
+        // console.log(p2Info.euid);
+        // console.log(curUser.uid);
+        if(p2Info.euid == curUser.uid){
+            await formalizeMatch(reqInfo);
+            await removeGameRequest(reqBox.dataset.id);
+            reqBox.remove();
+        }else{
+            console.log("need to be opponent to accept");
+            displayUserInfo.innerHTML = "need to be opponent to accept";
+            return;
+        }
+    }else{//if disapproving game then person can only be either opponent or requester
+        let p1Info = await getPlayer(reqInfo.requester);
+        let p2Info = await getPlayer(reqInfo.opponent);
+        if(p1Info.euid == curUser.uid || p2Info.euid == curUser.uid){
+            await removeGameRequest(reqBox.dataset.id);
+            reqBox.remove();
+        }else{
+            console.log(p1Info.euid, p2Info.euid, curUser.uid);
+            console.log("need to be either opponent or requester to reject request");
+            displayUserInfo.innerHTML = "need to be either opponent or requester to reject request";
+        }
+        // getRequests();
     }
 }
 
@@ -415,11 +489,28 @@ function makePlayerRequest(name){
 
 async function requestPlayer(){
     let name = newP.value;
-    if(await getPlayer(name) == -1){
-        await addPlayer(name);
-        
+    let curUser = auth.currentUser;
+    if (curUser !== null) {
+
+        let euid = curUser.uid;
+        if(await getPlayer(name) == -1){
+            let matchingAccounts = await matchingAccount(euid);
+            if( matchingAccounts.length == 0){
+                await addPlayer(name, euid);
+                getScores();
+            }else{
+                console.log("account with this email already exists!");
+                displayUserInfo.innerHTML = "account with this email already exists";
+            }
+            
+        }else{
+            console.log("player with this name already exists!");
+            displayUserInfo.innerHTML = "player with this name already exists";
+        }
+    }else{
+        console.log("NOT SIGNED IN, LOG IN TO JOIN");
+        displayUserInfo.innerHTML = "NOT SIGNED IN, LOG IN TO JOIN";
     }
-    getScores();
 }
 
 async function formalizeMatch(startInfo){
@@ -562,6 +653,7 @@ async function loadMatchUpPlayers(){
         // p2.add(tempOption.cloneNode(true));
         s1.add(tempOption.cloneNode(true));
         s2.add(tempOption.cloneNode(true));
+        personID.add(tempOption.cloneNode(true));
     }
 
 }

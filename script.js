@@ -18,6 +18,12 @@
 // let matchButton = document.getElementById("subMatch");
 // matchButton.addEventListener("click", testMatch);
 
+//firebase deploy --only hosting,database,firestore
+
+//make "past games" for each player available
+//make graph of elo for players that possible overlap
+
+
 let scores = document.getElementById("scores");
 
 let ME1 = document.getElementById("me1");
@@ -47,6 +53,22 @@ let addIDButton = document.getElementById("subID");
 addIDButton.addEventListener("click", addID);
 
 let displayUserInfo = document.getElementById("displayInfo");
+
+let mainButton = document.getElementById("main");
+mainButton.addEventListener("click", toMain);
+
+let visualButton = document.getElementById("visual");
+visualButton.addEventListener("click", toVisual);
+
+let mainContent = document.getElementById("mainContent");
+let visualContent = document.getElementById("visualContent");
+
+let timeButton = document.getElementById("timeSend");
+timeButton.addEventListener("click", displayMatches);
+
+let gamesPerson = document.getElementById("d1");
+
+let gamesDisplay = document.getElementById("gamesDisplay");
 
 const k = 32.;
 const d = 400.;
@@ -87,6 +109,113 @@ async function askForSignIn(){
 }
 
 const thing = "244570148069-6is73a7sohagu36v3bhov3s3at1hluvp.apps.googleusercontent.com";
+
+async function displayMatches(){
+    let info = await getPlayer(gamesPerson.value);
+    let oppInfo = {};
+    for(let i = 0; i < info.gamesPlayed; i++){
+      if(oppInfo[info.opponents[i]] == null){
+        oppInfo[info.opponents[i]] = await getPlayer(info.opponents[i]);
+      }
+    }
+    await makePastGameTable(info, oppInfo);
+    // gamesDisplay.innerHTML = info.opponents.join(" ");
+    // console.log(oppInfo);
+}
+
+async function makePastGameTable(info, oppInfo){
+  let curTab = document.getElementById("gamesTable");
+  curTab.remove();
+  let tab = document.createElement("table");
+  tab.id = "gamesTable";
+  let header = tab.createTHead();
+  let firstRow = header.insertRow(0);
+
+  firstRow.insertCell(0).innerHTML = "Opponent";
+  firstRow.insertCell(-1).innerHTML = "Initial Elo";
+  firstRow.insertCell(-1).innerHTML = "Opponent's Initial Elo";
+  firstRow.insertCell(-1).innerHTML = "Final Elo";
+  firstRow.insertCell(-1).innerHTML = "Opponent's Final Elo";
+  firstRow.insertCell(-1).innerHTML = "When Game Was Played";
+
+  for(let i = 0; i < info.gamesPlayed; i++){
+    let tempRow = tab.insertRow(-1);
+    let tempOpp = info.opponents[i];
+    let oppGameIndex = oppInfo[tempOpp].readableTime.indexOf(info.readableTime[i+1]);
+    console.log(oppGameIndex);
+    let tempIElo = info.elo[i];
+    let tempFElo = info.elo[i+1];
+    let tempOIElo = oppInfo[tempOpp].elo[oppGameIndex-1];
+    let tempOFElo = oppInfo[tempOpp].elo[oppGameIndex];
+    let tempTime = cleanDate(info.readableTime[i+1]);
+    tempRow.insertCell(0).innerHTML = tempOpp;
+    tempRow.insertCell(-1).innerHTML = tempIElo;
+    tempRow.insertCell(-1).innerHTML = tempOIElo;
+    tempRow.insertCell(-1).innerHTML = tempFElo;
+    tempRow.insertCell(-1).innerHTML = tempOFElo;
+    tempRow.insertCell(-1).innerHTML = tempTime;
+  }
+  gamesDisplay.appendChild(tab);
+}
+
+async function findOpponentsForPlayer(){
+    let name = gamesPerson.value;
+    let playerInfo = await getPlayer(name);
+    let opponents = [];
+    // if(playerInfo.euid == null){
+    //     console.log("HAS NO ID");
+    //     return;
+    // }
+    console.log(name);
+    for(let i = 1; i < playerInfo.readableTime.length; i++){
+
+        let matchingAccounts = await queryTime(playerInfo.readableTime[i], name);
+        if(matchingAccounts.length > 0){
+            // console.log(matchingAccounts[0].name);
+            if(matchingAccounts.length > 1){
+                console.log(matchingAccounts.length);
+            }
+            opponents = opponents.concat([matchingAccounts[0].name]);
+        }else{
+            opponents = opponents.concat([playerInfo.readableTime[i]]);
+            // console.log(playerInfo.time[i]);
+        }
+    }
+    console.log(opponents);
+    await updateOpponents(name, opponents);
+    console.log("Completed");
+}
+
+async function queryTime(time, name){
+    const ref = collection(db, "playerInfo");
+    // let increment = 100;
+    // const q = await query(ref, where("time", "array-contains", time), where("euid", "!=", uid));
+    const q = await query(ref, where("readableTime", "array-contains", time));
+    // const q = await query(ref, where("time", "<", time + increment), where("time", ">", time - increment));
+    
+    let temp = await getDocs(q);
+    let matchingAccounts = [];
+    await temp.forEach((doc) => {
+      let d = doc.data();
+      d.name = doc.id;
+      if(d.name != name){
+        matchingAccounts = matchingAccounts.concat([d]);
+      }
+    });
+    return matchingAccounts;
+}
+
+
+
+function toVisual(){
+    mainContent.style.display = "none";
+    visualContent.style.display = "inline";
+}
+
+function toMain(){
+    mainContent.style.display = "inline";
+    visualContent.style.display = "none";
+}
 
 async function addID(){
     let name = personID.value;
@@ -165,7 +294,7 @@ async function matchingAccount(euid){
       matchingAccounts = matchingAccounts.concat([d]);
     });
     return matchingAccounts;
-  }
+}
 
 
 async function addPlayer(name, euid){
@@ -224,7 +353,29 @@ async function getRequest(id){
   }
 }
 
-async function updatePlayer(name, newElo, victory, t, rt) {
+async function updateOpponents(name, opponents){
+    const sfRef = doc(db, "playerInfo", name);
+    try {
+        await runTransaction(db, async (transaction) => {
+          const sfDoc = await transaction.get(sfRef);
+          let info = await sfDoc.data();
+          if (!sfDoc.exists()) {
+            throw "Document does not exist!";
+          }
+          // console.log(info);
+          let data = {
+            opponents: opponents
+          };
+          // console.log(data);
+          transaction.update(sfRef, data);
+        });
+        // console.log("Transaction successfully committed!");
+      } catch (e) {
+        console.log("Transaction failed: ", e);
+      }
+}
+
+async function updatePlayer(name, newElo, victory, t, rt, opponent) {
   const sfRef = doc(db, "playerInfo", name);
   try {
     await runTransaction(db, async (transaction) => {
@@ -242,7 +393,8 @@ async function updatePlayer(name, newElo, victory, t, rt) {
         losses: info.losses + 1-Boolean(victory),
         gamesPlayed: info.gamesPlayed + 1,
         time : info.time.concat(t),
-        readableTime: info.readableTime.concat(rt)
+        readableTime: info.readableTime.concat(rt),
+        opponents: info.opponents.concat(opponent)
       };
       // console.log(data);
       transaction.update(sfRef, data);
@@ -254,8 +406,8 @@ async function updatePlayer(name, newElo, victory, t, rt) {
 }
 
 function matchUp(name1, name2, v1, elo1, elo2, t, tr){
-  updatePlayer(name1, elo1, v1, t, tr);
-  updatePlayer(name2, elo2, !v1, t, tr);
+  updatePlayer(name1, elo1, v1, t, tr, name2);
+  updatePlayer(name2, elo2, !v1, t, tr, name1);
 }
 
 async function allDocsOfPerson(name){
@@ -308,12 +460,19 @@ onAuthStateChanged(auth, (user) => {
     if (user) {
       // User is signed in, see docs for a list of available properties
       // https://firebase.google.com/docs/reference/js/firebase.User
+
       const uid = user.uid;
+      signInButton.style.display = "none";
+      signOutButton.style.display = "inline";
+      
     //   console.log(user);
     //   console.log(uid);
       userDisplay.innerHTML = "Signed in as : " + user.displayName;
       // ...
     } else {
+        signInButton.style.display = "inline";
+        signOutButton.style.display = "none";
+
       // User is signed out
       // ...
     //   console.log("Bye!");
@@ -349,28 +508,33 @@ async function makeMatchRequest(){
         return;
     }
 
+    let checkOption = document.querySelector('input[name="Rwinner"]:checked');
+    let v1 = checkOption.value;
+
+    let vP = "schmuck";
+
     if(curUser.uid == tempPlayer1.euid){
-        //do nothing?
+        if(v1 == "aWinner"){
+            v1 = true;
+            vP = name1;
+        }else{
+            v1 = false;
+            vP = name2;
+        }
     }else{
         //if person who is signed in and requesting a game is the second person in the selection boxes, do :
         name1 = s2.value;
         name2 = s1.value;
+
+        if(v1 == "aWinner"){
+            v1 = false;
+            vP = name1;
+        }else{
+            v1 = true;
+            vP = name2;
+        }
+        // v1 = !v1;
     }
-
-    let checkOption = document.querySelector('input[name="Rwinner"]:checked');
-    let v1 = checkOption.value;
-
-    // let rBox = document.createElement("div");
-    // rBox.classList.add("requestBox");
-    let vP = "schmuck";
-    if(v1 == "aWinner"){
-        v1 = true;
-        vP = name1;
-    }else{
-        v1 = false;
-        vP = name2;
-    }
-
 
     //make the requester and opponent values actually reflect requester and opponent
     let dbInfo = {
@@ -654,6 +818,7 @@ async function loadMatchUpPlayers(){
         s1.add(tempOption.cloneNode(true));
         s2.add(tempOption.cloneNode(true));
         personID.add(tempOption.cloneNode(true));
+        gamesPerson.add(tempOption.cloneNode(true));
     }
 
 }

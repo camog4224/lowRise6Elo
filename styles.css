@@ -1,4 +1,33 @@
 
+#navBar{
+    /* width: 90%; */
+    height: 31px;
+    /* border: 2px solid #003B62; */
+    /* height: 30px; */
+    /* padding: 10px; */
+}
+
+.navButton{
+    width: fit-content;
+    height: 15px;
+    float: left;
+    border: 2px solid #003B62;
+    padding: 5px;
+    margin-right: 10px;
+}
+
+#main{
+    background-color: rgb(223, 122, 64);
+}
+
+#visual{
+    background-color: rgb(219, 110, 233);
+}
+
+#visualContent{
+    display: none;
+}
+
 #left {
     background-color: rgb(80, 176, 80);
     position: relative;
@@ -78,6 +107,14 @@
 
 #scores {
     background-color: rgb(144, 214, 238);
+    position: relative;
+    float: right;
+    border: 2px solid #003B62;
+    padding-left: 10px;
+}
+
+#gamesDisplay {
+    background-color: rgb(186, 223, 236);
     position: relative;
     float: right;
     border: 2px solid #003B62;

@@ -66,6 +66,12 @@ let visualContent = document.getElementById("visualContent");
 let timeButton = document.getElementById("timeSend");
 timeButton.addEventListener("click", displayMatches);
 
+let graphButton = document.getElementById("graphSend");
+graphButton.addEventListener("click", plotPoints);
+
+let clearButton = document.getElementById("clearSend");
+clearButton.addEventListener("click", clearGraph);
+
 let gamesPerson = document.getElementById("d1");
 
 let gamesDisplay = document.getElementById("gamesDisplay");
@@ -119,8 +125,155 @@ async function displayMatches(){
       }
     }
     await makePastGameTable(info, oppInfo);
-    // gamesDisplay.innerHTML = info.opponents.join(" ");
     // console.log(oppInfo);
+}
+
+let canvas = document.getElementById("myCanvas");
+
+// console.log(canvas.height);
+// console.log(canvas.width);
+// const originalHeight = canvas.height;
+// const originalWidth = canvas.width;
+
+let ctx = canvas.getContext("2d");
+// plotPoints();
+// render();
+function render() {
+  // console.log(canvas.clientWidth);
+  // console.log(canvas.clientHeight);
+  console.log(canvas.getBoundingClientRect()["width"]);
+  console.log(canvas.getBoundingClientRect()["height"]);
+  let dimensions = getObjectFitSize(
+    true,
+    canvas.clientWidth,
+    canvas.clientHeight,
+    canvas.width,
+    canvas.height
+  );
+  // window.devicePixelRatio=2;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = dimensions.width * dpr;
+  canvas.height = dimensions.height * dpr;
+
+  // let ctx = canvas.getContext("2d");
+  // console.log(canvas.clientWidth);
+  // console.log(canvas.clientHeight);
+  let ratio = Math.min(
+    canvas.clientWidth / originalWidth,
+    canvas.clientHeight / originalHeight
+  );
+  // console.log(ratio);
+  // console.log(dpr);
+  ctx.scale(ratio * dpr, ratio * dpr); //adjust this!
+
+  plotPoints();
+}
+
+// adapted from: https://www.npmjs.com/package/intrinsic-scale
+function getObjectFitSize(
+  contains /* true = contain, false = cover */,
+  containerWidth,
+  containerHeight,
+  width,
+  height
+) {
+  var doRatio = width / height;
+  var cRatio = containerWidth / containerHeight;
+  var targetWidth = 0;
+  var targetHeight = 0;
+  var test = contains ? doRatio > cRatio : doRatio < cRatio;
+
+  if (test) {
+    targetWidth = containerWidth;
+    targetHeight = targetWidth / doRatio;
+  } else {
+    targetHeight = containerHeight;
+    targetWidth = targetHeight * doRatio;
+  }
+
+  return {
+    width: targetWidth,
+    height: targetHeight,
+    x: (containerWidth - targetWidth) / 2,
+    y: (containerHeight - targetHeight) / 2
+  };
+}
+
+function clearGraph(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+}
+
+async function plotPoints(){
+
+  // console.log(canvas.clientWidth);
+  // console.log(canvas.clientHeight);
+  // console.log(canvas.getBoundingClientRect()["width"]);
+  // console.log(canvas.getBoundingClientRect()["height"]);
+
+  let info = await getPlayer(gamesPerson.value);
+
+  let colors = ["#FF0000","#00FF00","#0000FF","#F000F0","#00F0F0"]
+  let numPoints = info.gamesPlayed+1;
+  let r = 5;
+  let points = [];
+  let x;
+  let y;
+
+  let border = .1
+  let xDif = (canvas.width/numPoints)*(1-border);
+  let minY = 20000;
+  let maxY = 0;
+  for(let i = 0; i < numPoints; i++){
+    if(info.elo[i] > maxY){
+      maxY = info.elo[i];
+    }
+    if(info.elo[i] < minY){
+      minY = info.elo[i]
+    }
+  }
+  let yScale = canvas.height*(1-border);
+
+  for(let i = 0; i < numPoints; i++){
+    // x = Math.random()*(canvas.width-r) + r;
+    // y = Math.random()*(canvas.height-r) + r;
+    x = i*xDif + canvas.width*border*.5;
+    y = canvas.height*(1-border/2)-((info.elo[i]-minY)/(maxY-minY))*yScale;
+    let c = colors[Math.floor(Math.random()*colors.length)];
+    points.push([x,y,c,info.elo[i]]);
+  }
+  for(let i = 0; i < numPoints; i++){
+    let x2 = points[i][0];
+    let y2 = points[i][1];
+    let c = points[i][2];
+    drawCirc(x2,y2,r,c);
+    drawTex(x2-r, y2-r-3,points[i][3]);
+    if(i != 0){
+      let x1 = points[i-1][0];
+      let y1 = points[i-1][1]
+      drawLin(x1,y1,x2,y2,"#000000");
+    }
+  }
+}
+
+function drawCirc(x,y,r,c){
+  ctx.fillStyle = c;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, 2 * Math.PI);
+  ctx.fill();
+}
+
+function drawLin(x1,y1,x2,y2,c){
+  ctx.fillStyle = c;
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+}
+
+function drawTex(x,y,text,c){
+  ctx.font = "10px Georgia";
+  ctx.fillStyle = c;
+  ctx.fillText(text, x, y);
 }
 
 async function makePastGameTable(info, oppInfo){
@@ -138,11 +291,19 @@ async function makePastGameTable(info, oppInfo){
   firstRow.insertCell(-1).innerHTML = "Opponent's Final Elo";
   firstRow.insertCell(-1).innerHTML = "When Game Was Played";
 
+  let body = tab.createTBody();
+  // let firstRow = body.insertRow(0);
+
   for(let i = 0; i < info.gamesPlayed; i++){
-    let tempRow = tab.insertRow(-1);
+    let tempRow = body.insertRow(-1);
+    if(info.victories[i] == true){
+      tempRow.classList.add("winRow");
+    }else{
+      tempRow.classList.add("loseRow");
+    }
     let tempOpp = info.opponents[i];
     let oppGameIndex = oppInfo[tempOpp].readableTime.indexOf(info.readableTime[i+1]);
-    console.log(oppGameIndex);
+    
     let tempIElo = info.elo[i];
     let tempFElo = info.elo[i+1];
     let tempOIElo = oppInfo[tempOpp].elo[oppGameIndex-1];

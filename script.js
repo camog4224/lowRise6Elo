@@ -20,8 +20,7 @@
 
 //firebase deploy --only hosting,database,firestore
 
-//make "past games" for each player available
-//make graph of elo for players that possible overlap
+//elo decay baed on elo
 
 
 let scores = document.getElementById("scores");
@@ -55,13 +54,41 @@ addIDButton.addEventListener("click", addID);
 let displayUserInfo = document.getElementById("displayInfo");
 
 let mainButton = document.getElementById("main");
-mainButton.addEventListener("click", toMain);
+mainButton.addEventListener("click", function (){
+  showTab("mainContent");
+});
 
 let visualButton = document.getElementById("visual");
-visualButton.addEventListener("click", toVisual);
+visualButton.addEventListener("click", function (){
+  showTab("visualContent");
+});
+
+let movieButton = document.getElementById("movie");
+movieButton.addEventListener("click", function (){
+  showTab("movieContent");
+});
+
+let wormButton = document.getElementById("worms");
+wormButton.addEventListener("click", function (){
+  showTab("wormContent");
+});
+
+let procButton = document.getElementById("proc");
+procButton.addEventListener("click", function (){
+  showTab("procContent");
+});
+
+let gameButton = document.getElementById("game");
+gameButton.addEventListener("click", function (){
+  showTab("gameContent");
+});
 
 let mainContent = document.getElementById("mainContent");
 let visualContent = document.getElementById("visualContent");
+let movieContent = document.getElementById("movieContent");
+let wormContent = document.getElementById("wormContent");
+let procContent = document.getElementById("procContent");
+let gameContent = document.getElementById("gameContent");
 
 let timeButton = document.getElementById("timeSend");
 timeButton.addEventListener("click", displayMatches);
@@ -70,11 +97,21 @@ let graphButton = document.getElementById("graphSend");
 graphButton.addEventListener("click", plotPoints);
 
 let clearButton = document.getElementById("clearSend");
-clearButton.addEventListener("click", clearGraph);
+clearButton.addEventListener("click", function(){
+  clearGraph(ctx, canvas);
+});
 
 let gamesPerson = document.getElementById("d1");
 
 let gamesDisplay = document.getElementById("gamesDisplay");
+
+let moviesDisplay = document.getElementById("moviesDisplay");
+
+let movieInput = document.getElementById("movieInput");
+
+let movieSendButton = document.getElementById("movieSend");
+movieSendButton.addEventListener("click", addMovie);
+
 
 const k = 32.;
 const d = 400.;
@@ -116,6 +153,57 @@ async function askForSignIn(){
 
 const thing = "244570148069-6is73a7sohagu36v3bhov3s3at1hluvp.apps.googleusercontent.com";
 
+// async function displayMovies(){
+//   let info = await allMovies();
+//   for(let i = 0; i < info.length; i++){
+
+//     let movieBox = document.createElement("DIV");
+//     movieBox.innerHTML = info[i].title;
+//     movieBox.style.classList.add("movieBox");
+
+//     let upVote = document.createElement("DIV");
+//     upVote.innerHTML = "Upvotes : " + info[i].supporters.length;
+//     upVote.style.classList.add("upVoteBox");
+
+//     let downVote = document.createElement("DIV");
+//     downVote.innerHTML = "Downvotes : " + info[i].critics.length;
+//     downVote.style.classList.add("downVoteBox");
+
+//     movieBox.appendChild(upVote);
+//     movieBox.appendChild(downVote);
+//     moviesDisplay.appendChild(movieBox);
+//   }
+// }
+
+async function addMovie(name, euid){
+  if(checkAccountStatus() == false){
+    return;
+  }
+  let movTitle = movieInput.value;
+  // let name = 
+
+  let data = {
+    euid: euid,
+    title: movTitle,
+    supporters: [name],
+    critics: [],
+    time : [Date.now()],
+    readableTime: ["" + new Date(Date.now())]
+  };
+  await setDoc(doc(db, "movies", movTitle), data);
+  // await setDoc(collection(db, "playerInfo", name), );
+}
+
+async function allMovies(){
+  const querySnapshot = await getDocs(collection(db, "movies"));
+  let completeInfo = [];
+  await querySnapshot.forEach((doc) => {
+    let d = doc.data();
+    completeInfo = completeInfo.concat([d]);
+  });
+  return completeInfo;
+}
+
 async function displayMatches(){
     let info = await getPlayer(gamesPerson.value);
     let oppInfo = {};
@@ -125,91 +213,22 @@ async function displayMatches(){
       }
     }
     await makePastGameTable(info, oppInfo);
-    // console.log(oppInfo);
+    
 }
 
 let canvas = document.getElementById("myCanvas");
 
-// console.log(canvas.height);
-// console.log(canvas.width);
 // const originalHeight = canvas.height;
 // const originalWidth = canvas.width;
 
 let ctx = canvas.getContext("2d");
 // plotPoints();
-// render();
-function render() {
-  // console.log(canvas.clientWidth);
-  // console.log(canvas.clientHeight);
-  console.log(canvas.getBoundingClientRect()["width"]);
-  console.log(canvas.getBoundingClientRect()["height"]);
-  let dimensions = getObjectFitSize(
-    true,
-    canvas.clientWidth,
-    canvas.clientHeight,
-    canvas.width,
-    canvas.height
-  );
-  // window.devicePixelRatio=2;
-  const dpr = window.devicePixelRatio || 1;
-  canvas.width = dimensions.width * dpr;
-  canvas.height = dimensions.height * dpr;
 
-  // let ctx = canvas.getContext("2d");
-  // console.log(canvas.clientWidth);
-  // console.log(canvas.clientHeight);
-  let ratio = Math.min(
-    canvas.clientWidth / originalWidth,
-    canvas.clientHeight / originalHeight
-  );
-  // console.log(ratio);
-  // console.log(dpr);
-  ctx.scale(ratio * dpr, ratio * dpr); //adjust this!
-
-  plotPoints();
-}
-
-// adapted from: https://www.npmjs.com/package/intrinsic-scale
-function getObjectFitSize(
-  contains /* true = contain, false = cover */,
-  containerWidth,
-  containerHeight,
-  width,
-  height
-) {
-  var doRatio = width / height;
-  var cRatio = containerWidth / containerHeight;
-  var targetWidth = 0;
-  var targetHeight = 0;
-  var test = contains ? doRatio > cRatio : doRatio < cRatio;
-
-  if (test) {
-    targetWidth = containerWidth;
-    targetHeight = targetWidth / doRatio;
-  } else {
-    targetHeight = containerHeight;
-    targetWidth = targetHeight * doRatio;
-  }
-
-  return {
-    width: targetWidth,
-    height: targetHeight,
-    x: (containerWidth - targetWidth) / 2,
-    y: (containerHeight - targetHeight) / 2
-  };
-}
-
-function clearGraph(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+function clearGraph(ct, canv){
+  ct.clearRect(0,0,canv.width,canv.height);
 }
 
 async function plotPoints(){
-
-  // console.log(canvas.clientWidth);
-  // console.log(canvas.clientHeight);
-  // console.log(canvas.getBoundingClientRect()["width"]);
-  // console.log(canvas.getBoundingClientRect()["height"]);
-
   let info = await getPlayer(gamesPerson.value);
 
   let colors = ["#FF0000","#00FF00","#0000FF","#F000F0","#00F0F0"]
@@ -241,39 +260,64 @@ async function plotPoints(){
     let c = colors[Math.floor(Math.random()*colors.length)];
     points.push([x,y,c,info.elo[i]]);
   }
+  //drawing lines
+  for(let i = 1; i < numPoints; i++){
+    let x2 = points[i][0];
+    let y2 = points[i][1];
+    let x1 = points[i-1][0];
+    let y1 = points[i-1][1]
+    drawLin(ctx, x1,y1,x2,y2,"#000000", 5);
+  }
+  //drawing circles/text
   for(let i = 0; i < numPoints; i++){
     let x2 = points[i][0];
     let y2 = points[i][1];
     let c = points[i][2];
-    drawCirc(x2,y2,r,c);
-    drawTex(x2-r, y2-r-3,points[i][3]);
-    if(i != 0){
-      let x1 = points[i-1][0];
-      let y1 = points[i-1][1]
-      drawLin(x1,y1,x2,y2,"#000000");
-    }
+    drawTex(ctx, 2-r, y2-r-3,points[i][3]);
+    drawCirc(ctx, x2,y2,r,c);
   }
+
+  // for(let i = 0; i < numPoints; i++){
+  //   let x2 = points[i][0];
+  //   let y2 = points[i][1];
+  //   let c = points[i][2];
+  //   drawTex(x2-r, y2-r-3,points[i][3]);
+  //   drawCirc(x2,y2,r,c);
+  //   if(i != 0){
+  //     let x1 = points[i-1][0];
+  //     let y1 = points[i-1][1]
+  //     drawLin(x1,y1,x2,y2,"#000000");
+  //   }
+  // }
 }
 
-function drawCirc(x,y,r,c){
-  ctx.fillStyle = c;
-  ctx.beginPath();
-  ctx.arc(x, y, r, 0, 2 * Math.PI);
-  ctx.fill();
+function drawCirc(canv, x,y,r,c){
+  canv.fillStyle = c;
+  canv.beginPath();
+  canv.arc(x, y, r, 0, 2 * Math.PI);
+  canv.fill();
 }
 
-function drawLin(x1,y1,x2,y2,c){
-  ctx.fillStyle = c;
-  ctx.beginPath();
-  ctx.moveTo(x1, y1);
-  ctx.lineTo(x2, y2);
-  ctx.stroke();
+function drawLin(ct, x1,y1,x2,y2,c,w){
+  ct.strokeStyle = c;
+  ct.lineWidth = w;
+  ct.lineCap = "round";
+  ct.beginPath();
+  ct.moveTo(x1, y1);
+  ct.lineTo(x2, y2);
+  ct.stroke();
 }
 
-function drawTex(x,y,text,c){
-  ctx.font = "10px Georgia";
-  ctx.fillStyle = c;
-  ctx.fillText(text, x, y);
+function drawTex(canv, x,y,text,c){
+  canv.font = "12px Georgia";
+  canv.fillStyle = "#000000";
+  canv.fillText(text, x, y);
+}
+
+function drawSRect(canv, x,y, w, h, c){
+  canv.lineWidth = 1;
+  canv.strokeStyle = c;
+  canv.strokeRect(x, y, w, h);
 }
 
 async function makePastGameTable(info, oppInfo){
@@ -319,79 +363,93 @@ async function makePastGameTable(info, oppInfo){
   gamesDisplay.appendChild(tab);
 }
 
-async function findOpponentsForPlayer(){
-    let name = gamesPerson.value;
-    let playerInfo = await getPlayer(name);
-    let opponents = [];
-    // if(playerInfo.euid == null){
-    //     console.log("HAS NO ID");
-    //     return;
-    // }
-    console.log(name);
-    for(let i = 1; i < playerInfo.readableTime.length; i++){
+// async function findOpponentsForPlayer(){
+//     let name = gamesPerson.value;
+//     let playerInfo = await getPlayer(name);
+//     let opponents = [];
+//     // if(playerInfo.euid == null){
 
-        let matchingAccounts = await queryTime(playerInfo.readableTime[i], name);
-        if(matchingAccounts.length > 0){
-            // console.log(matchingAccounts[0].name);
-            if(matchingAccounts.length > 1){
-                console.log(matchingAccounts.length);
-            }
-            opponents = opponents.concat([matchingAccounts[0].name]);
-        }else{
-            opponents = opponents.concat([playerInfo.readableTime[i]]);
-            // console.log(playerInfo.time[i]);
-        }
-    }
-    console.log(opponents);
-    await updateOpponents(name, opponents);
-    console.log("Completed");
-}
+//     //     return;
+//     // }
 
-async function queryTime(time, name){
-    const ref = collection(db, "playerInfo");
-    // let increment = 100;
-    // const q = await query(ref, where("time", "array-contains", time), where("euid", "!=", uid));
-    const q = await query(ref, where("readableTime", "array-contains", time));
-    // const q = await query(ref, where("time", "<", time + increment), where("time", ">", time - increment));
+//     for(let i = 1; i < playerInfo.readableTime.length; i++){
+
+//         let matchingAccounts = await queryTime(playerInfo.readableTime[i], name);
+//         if(matchingAccounts.length > 0){
+//             if(matchingAccounts.length > 1){
+
+//             }
+//             opponents = opponents.concat([matchingAccounts[0].name]);
+//         }else{
+//             opponents = opponents.concat([playerInfo.readableTime[i]]);
+
+//         }
+//     }
+
+//     await updateOpponents(name, opponents);
+
+// }
+
+// async function queryTime(time, name){
+//     const ref = collection(db, "playerInfo");
+//     // let increment = 100;
+//     // const q = await query(ref, where("time", "array-contains", time), where("euid", "!=", uid));
+//     const q = await query(ref, where("readableTime", "array-contains", time));
+//     // const q = await query(ref, where("time", "<", time + increment), where("time", ">", time - increment));
     
-    let temp = await getDocs(q);
-    let matchingAccounts = [];
-    await temp.forEach((doc) => {
-      let d = doc.data();
-      d.name = doc.id;
-      if(d.name != name){
-        matchingAccounts = matchingAccounts.concat([d]);
-      }
-    });
-    return matchingAccounts;
+//     let temp = await getDocs(q);
+//     let matchingAccounts = [];
+//     await temp.forEach((doc) => {
+//       let d = doc.data();
+//       d.name = doc.id;
+//       if(d.name != name){
+//         matchingAccounts = matchingAccounts.concat([d]);
+//       }
+//     });
+//     return matchingAccounts;
+// }
+
+let tabs = {
+  "mainContent" : mainContent,
+  "movieContent" : movieContent,
+  "visualContent" : visualContent,
+  "wormContent" : wormContent,
+  "procContent" : procContent,
+  "gameContent" : gameContent
 }
 
 
-
-function toVisual(){
-    mainContent.style.display = "none";
-    visualContent.style.display = "inline";
-}
-
-function toMain(){
-    mainContent.style.display = "inline";
-    visualContent.style.display = "none";
+function showTab(key){
+  let allKeys = Object.keys(tabs);
+  for(let i = 0; i < allKeys.length; i++){
+    if(allKeys[i] == key){
+      tabs[allKeys[i]].style.display = "inline";
+    }else{
+      tabs[allKeys[i]].style.display = "none";
+    }
+  }
+  if(key == "wormContent"){
+    initWorms();
+  }else{
+    if(wormRunApp != null){
+      hideWorms();
+    }
+  }
 }
 
 async function addID(){
     let name = personID.value;
     //if logged in
     if(checkAccountStatus() == false){
-        console.log("no one signed in!");
+        
         displayUserInfo.innerHTML = "no one signed in";
         return;
     }
     let curUser = auth.currentUser;
     let curMatchingUsers = await matchingAccount(curUser.uid);
     //if 
-    // console.log(curMatchingUsers);
     if(curMatchingUsers.length > 0){
-        console.log("Player with this email already exists");
+        
         displayUserInfo.innerHTML = "Player with this email already exists";
         return;
     }
@@ -410,17 +468,17 @@ async function addID(){
             if (!sfDoc.exists()) {
                 throw "Document does not exist!";
             }
-            // console.log(info);
+            
             let data = {
                 euid: curUser.uid
             };
-            // console.log(data);
+            
             transaction.update(sfRef, data);
         });
-        // console.log("Transaction successfully committed!");
+        
         displayUserInfo.innerHTML = "ID ADDED";
     } catch (e) {
-        // console.log("Transaction failed: ", e);
+        
     }
 }
 
@@ -456,7 +514,6 @@ async function matchingAccount(euid){
     });
     return matchingAccounts;
 }
-
 
 async function addPlayer(name, euid){
   let data = {
@@ -505,36 +562,36 @@ async function getRequest(id){
   const docSnap = await getDoc(docRef);
 
   if (docSnap.exists()) {
-    // console.log("Document data:", docSnap.data());
+    
     return await docSnap.data();
   } else {
   // doc.data() will be undefined in this case
-  // console.log("No such document!");
+  
   return -1;
   }
 }
 
-async function updateOpponents(name, opponents){
-    const sfRef = doc(db, "playerInfo", name);
-    try {
-        await runTransaction(db, async (transaction) => {
-          const sfDoc = await transaction.get(sfRef);
-          let info = await sfDoc.data();
-          if (!sfDoc.exists()) {
-            throw "Document does not exist!";
-          }
-          // console.log(info);
-          let data = {
-            opponents: opponents
-          };
-          // console.log(data);
-          transaction.update(sfRef, data);
-        });
-        // console.log("Transaction successfully committed!");
-      } catch (e) {
-        console.log("Transaction failed: ", e);
-      }
-}
+// async function updateOpponents(name, opponents){
+//     const sfRef = doc(db, "playerInfo", name);
+//     try {
+//         await runTransaction(db, async (transaction) => {
+//           const sfDoc = await transaction.get(sfRef);
+//           let info = await sfDoc.data();
+//           if (!sfDoc.exists()) {
+//             throw "Document does not exist!";
+//           }
+
+//           let data = {
+//             opponents: opponents
+//           };
+
+//           transaction.update(sfRef, data);
+//         });
+
+//       } catch (e) {
+
+//       }
+// }
 
 async function updatePlayer(name, newElo, victory, t, rt, opponent) {
   const sfRef = doc(db, "playerInfo", name);
@@ -545,7 +602,7 @@ async function updatePlayer(name, newElo, victory, t, rt, opponent) {
       if (!sfDoc.exists()) {
         throw "Document does not exist!";
       }
-      // console.log(info);
+      
       let data = {
         elo: info.elo.concat(newElo),
         currentElo: newElo,
@@ -557,12 +614,12 @@ async function updatePlayer(name, newElo, victory, t, rt, opponent) {
         readableTime: info.readableTime.concat(rt),
         opponents: info.opponents.concat(opponent)
       };
-      // console.log(data);
+      
       transaction.update(sfRef, data);
     });
-    // console.log("Transaction successfully committed!");
+    
   } catch (e) {
-    console.log("Transaction failed: ", e);
+    
   }
 }
 
@@ -571,34 +628,34 @@ function matchUp(name1, name2, v1, elo1, elo2, t, tr){
   updatePlayer(name2, elo2, !v1, t, tr, name1);
 }
 
-async function allDocsOfPerson(name){
-  const q = query(collection(db, "playerInfo"), where("name", "==", name));
-  const querySnapshot = await getDocs(q);
-  // console.log(querySnapshot.docs);
-  return querySnapshot.docs;
-}
+// async function allDocsOfPerson(name){
+//   const q = query(collection(db, "playerInfo"), where("name", "==", name));
+//   const querySnapshot = await getDocs(q);
 
-async function allDocs(){
-  const querySnapshot = await getDocs(collection(db, "playerInfo"));
-  let completeInfo = [];
-  await querySnapshot.forEach((doc) => {
-    let d = doc.data();
-    d.name = doc.id;
-    completeInfo = completeInfo.concat([d]);
-  });
-  return completeInfo;
-}
+//   return querySnapshot.docs;
+// }
+
+// async function allDocs(){
+//   const querySnapshot = await getDocs(collection(db, "playerInfo"));
+//   let completeInfo = [];
+//   await querySnapshot.forEach((doc) => {
+//     let d = doc.data();
+//     d.name = doc.id;
+//     completeInfo = completeInfo.concat([d]);
+//   });
+//   return completeInfo;
+// }
 
 async function getPlayer(name){
   const docRef = doc(db, "playerInfo", name);
   const docSnap = await getDoc(docRef);
 
   if (docSnap.exists()) {
-    // console.log("Document data:", docSnap.data());
+    
     return await docSnap.data();
   } else {
   // doc.data() will be undefined in this case
-  // console.log("No such document!");
+  
   return -1;
   }
 }
@@ -626,8 +683,6 @@ onAuthStateChanged(auth, (user) => {
       signInButton.style.display = "none";
       signOutButton.style.display = "inline";
       
-    //   console.log(user);
-    //   console.log(uid);
       userDisplay.innerHTML = "Signed in as : " + user.displayName;
       // ...
     } else {
@@ -636,7 +691,7 @@ onAuthStateChanged(auth, (user) => {
 
       // User is signed out
       // ...
-    //   console.log("Bye!");
+    
     }
   }
 );
@@ -652,11 +707,11 @@ async function makeMatchRequest(){
     let name2 = s2.value;
     
     if(name1 == name2){
-        console.log("can't submit same person!");
+        
         return;
     }
     let curUser = auth.currentUser;
-    // console.log(curUser);
+    
 
     if(checkAccountStatus() == false){
         return;
@@ -665,7 +720,6 @@ async function makeMatchRequest(){
     let tempPlayer2 = await getPlayer(name2);
 
     if((curUser.uid == tempPlayer1.euid || curUser.uid == tempPlayer2.euid) == false){
-        console.log("requester is not one of the players");
         return;
     }
 
@@ -723,11 +777,11 @@ function checkCornell(emailString){
 }
 
 async function resolveMatchRequest(reqBox, approve){
-    // console.log("resolve Request Called");
+    
     let reqInfo = await getRequest(reqBox.dataset.id);
     if(checkAccountStatus() == false){
         displayUserInfo.innerHTML = "log in to resolve request";
-        console.log("log in to resolve request");
+        
         return;
     }
     let curUser = auth.currentUser;
@@ -735,14 +789,11 @@ async function resolveMatchRequest(reqBox, approve){
     if(approve == true){
         // let p1Info = await getPlayer(reqInfo.requester);
         let p2Info = await getPlayer(reqInfo.opponent);
-        // console.log(p2Info.euid);
-        // console.log(curUser.uid);
         if(p2Info.euid == curUser.uid){
             await formalizeMatch(reqInfo);
             await removeGameRequest(reqBox.dataset.id);
             reqBox.remove();
         }else{
-            console.log("need to be opponent to accept");
             displayUserInfo.innerHTML = "need to be opponent to accept";
             return;
         }
@@ -753,8 +804,6 @@ async function resolveMatchRequest(reqBox, approve){
             await removeGameRequest(reqBox.dataset.id);
             reqBox.remove();
         }else{
-            console.log(p1Info.euid, p2Info.euid, curUser.uid);
-            console.log("need to be either opponent or requester to reject request");
             displayUserInfo.innerHTML = "need to be either opponent or requester to reject request";
         }
         // getRequests();
@@ -804,13 +853,13 @@ function makeHTMLRequestBox(info){
     
 }
 
-function makePlayerRequest(name){
-    let rBox = document.createElement("div");
-    rBox.classList.add("requestBox");
-    rBox.dataset.name = name;
-    rBox.innerHTML = "Please add : " + name;
-    requestChannel.append(rBox);
-}
+// function makePlayerRequest(name){
+//     let rBox = document.createElement("div");
+//     rBox.classList.add("requestBox");
+//     rBox.dataset.name = name;
+//     rBox.innerHTML = "Please add : " + name;
+//     requestChannel.append(rBox);
+// }
 
 async function requestPlayer(){
     let name = newP.value;
@@ -824,16 +873,13 @@ async function requestPlayer(){
                 await addPlayer(name, euid);
                 getScores();
             }else{
-                console.log("account with this email already exists!");
                 displayUserInfo.innerHTML = "account with this email already exists";
             }
             
         }else{
-            console.log("player with this name already exists!");
             displayUserInfo.innerHTML = "player with this name already exists";
         }
     }else{
-        console.log("NOT SIGNED IN, LOG IN TO JOIN");
         displayUserInfo.innerHTML = "NOT SIGNED IN, LOG IN TO JOIN";
     }
 }
@@ -870,102 +916,102 @@ async function formalizeMatch(startInfo){
     getScores();
 }
 
-async function requestMatch(){
-    let p1Info = await getPlayer(s1.value);
-    let p2Info = await getPlayer(s2.value);
+// async function requestMatch(){
+//     let p1Info = await getPlayer(s1.value);
+//     let p2Info = await getPlayer(s2.value);
 
-    let ra = p1Info.currentElo * 1.0;;
-    let rb = p2Info.currentElo * 1.0;
+//     let ra = p1Info.currentElo * 1.0;;
+//     let rb = p2Info.currentElo * 1.0;
 
-    let qa = 10. ** (ra/d);
-    let qb = 10. ** (rb/d);
+//     let qa = 10. ** (ra/d);
+//     let qb = 10. ** (rb/d);
 
-    let ea = qa / (qa + qb);
-    E1.innerHTML = Math.round(1000*ea)/10. + "%";
-    let eb = qb / (qa + qb);
-    E2.innerHTML = Math.round(1000*eb)/10. + "%";
-    let checkOption = document.querySelector('input[name="Rwinner"]:checked');
+//     let ea = qa / (qa + qb);
+//     E1.innerHTML = Math.round(1000*ea)/10. + "%";
+//     let eb = qb / (qa + qb);
+//     E2.innerHTML = Math.round(1000*eb)/10. + "%";
+//     let checkOption = document.querySelector('input[name="Rwinner"]:checked');
 
-    let winner = checkOption.value;
-    let sa;
-    let sb;
+//     let winner = checkOption.value;
+//     let sa;
+//     let sb;
 
-    let winBool;
-    if(winner == "aWinner"){
-        winBool = true;
-    } else{
-        winBool = false;
-    }
+//     let winBool;
+//     if(winner == "aWinner"){
+//         winBool = true;
+//     } else{
+//         winBool = false;
+//     }
     
-    if(winBool == true){
-        sa = 1.;
-        sb = 0.;
+//     if(winBool == true){
+//         sa = 1.;
+//         sb = 0.;
         
-    }else{
-        sa = 0.;
-        sb = 1.;
+//     }else{
+//         sa = 0.;
+//         sb = 1.;
         
-    }
-    let rea = Math.round(ra + (k * (sa - ea)));
-    let reb = Math.round(rb + k * (sb - eb));
+//     }
+//     let rea = Math.round(ra + (k * (sa - ea)));
+//     let reb = Math.round(rb + k * (sb - eb));
     
-    matchUp(s1.value, s2.value, winBool, rea, reb);
-    getScores();
+//     matchUp(s1.value, s2.value, winBool, rea, reb);
+//     getScores();
     
-}
+// }
 
-async function testMatch(){
+// async function testMatch(){
 
-    let p1Info = await getPlayer(p1.value);
-    let p2Info = await getPlayer(p2.value);
+//     let p1Info = await getPlayer(p1.value);
+//     let p2Info = await getPlayer(p2.value);
 
-    let ra = p1Info.currentElo * 1.0;
-    let rb = p2Info.currentElo * 1.0;
+//     let ra = p1Info.currentElo * 1.0;
+//     let rb = p2Info.currentElo * 1.0;
 
-    let qa = 10. ** (ra/d);
-    let qb = 10. ** (rb/d);
+//     let qa = 10. ** (ra/d);
+//     let qb = 10. ** (rb/d);
 
-    let ea = qa / (qa + qb);
-    ME1.innerHTML = Math.round(1000*ea)/10. + "%";
-    let eb = qb / (qa + qb);
-    ME2.innerHTML = Math.round(1000*eb)/10. + "%";
+//     let ea = qa / (qa + qb);
+//     ME1.innerHTML = Math.round(1000*ea)/10. + "%";
+//     let eb = qb / (qa + qb);
+//     ME2.innerHTML = Math.round(1000*eb)/10. + "%";
 
-}
+// }
 
-function calculate(){
-    let ra = parseFloat(elo1.value);
-    let rb = parseFloat(elo2.value);
+// function calculate(){
+//     let ra = parseFloat(elo1.value);
+//     let rb = parseFloat(elo2.value);
 
-    let qa = 10. ** (ra/d);
-    let qb = 10. ** (rb/d);
+//     let qa = 10. ** (ra/d);
+//     let qb = 10. ** (rb/d);
 
-    let ea = qa / (qa + qb);
-    E1.innerHTML = Math.round(1000*ea)/10. + "%";
-    let eb = qb / (qa + qb);
-    E2.innerHTML = Math.round(1000*eb)/10. + "%";
-    let checkOption = document.querySelector('input[name="winner"]:checked');
+//     let ea = qa / (qa + qb);
+//     E1.innerHTML = Math.round(1000*ea)/10. + "%";
+//     let eb = qb / (qa + qb);
+//     E2.innerHTML = Math.round(1000*eb)/10. + "%";
+//     let checkOption = document.querySelector('input[name="winner"]:checked');
 
-    let winner = checkOption.value;
-    let sa;
-    let sb;
-    if(winner == "aWinner"){
-        sa = 1.;
-        sb = 0.;
+//     let winner = checkOption.value;
+//     let sa;
+//     let sb;
+//     if(winner == "aWinner"){
+//         sa = 1.;
+//         sb = 0.;
         
-    }else{
-        sa = 0.;
-        sb = 1.;
+//     }else{
+//         sa = 0.;
+//         sb = 1.;
         
-    }
-    // console.log(ra, rb);
-    let rea = Math.round(ra + (k * (sa - ea)));
-    Re1.innerHTML = "" + rea;
-    let reb = Math.round(rb + k * (sb - eb));
-    Re2.innerHTML = "" + reb;
-    // console.log(rea, reb);
+//     }
+
+//     let rea = Math.round(ra + (k * (sa - ea)));
+//     Re1.innerHTML = "" + rea;
+//     let reb = Math.round(rb + k * (sb - eb));
+//     Re2.innerHTML = "" + reb;
+
 
     
-};
+// };
 
 async function loadMatchUpPlayers(){
     
@@ -1000,7 +1046,7 @@ async function getScores(){
 
     let allPlayerInfo = await eloRankedDocs();
     let numPlayers = allPlayerInfo.length;
-    // console.log(allPlayerInfo[0].elo);
+    
     for(let i = 0; i < numPlayers; i++){
         let tempRow = tempTable.insertRow(-1);
         let tempPlayer = allPlayerInfo[i];
@@ -1011,7 +1057,7 @@ async function getScores(){
         tempRow.insertCell(0).innerHTML = i+1;
         tempRow.insertCell(-1).innerHTML = "" + Math.floor(100*(tempPlayer.wins / tempPlayer.gamesPlayed)) + "%";
         tempRow.insertCell(-1).innerHTML = tempPlayer.gamesPlayed;
-        // console.log(tempPlayer.readableTime[-]);
+        
         tempRow.insertCell(-1).innerHTML = cleanDate(tempPlayer.readableTime[tempPlayer.readableTime.length-1]);
     }
     // t1 = tempTable;
@@ -1028,7 +1074,7 @@ async function getRequests(){
     requestParent.append(tempChannel);
 
     let allRequestInfo = await requestDocs();
-    // console.log(allRequestInfo);
+    
     let numRequests = allRequestInfo.length;
     
     for(let i = 0; i < numRequests; i++){
@@ -1050,6 +1096,508 @@ function cleanDate(dateString){
     return dateString.slice(0, i-1);
 }
 
+let wormCanvas = document.getElementById("wormCanvas");
+const Width = wormCanvas.width;
+const Height = wormCanvas.height;
+
+let ctxW = wormCanvas.getContext("2d");
+
+let aSlider = document.getElementById("align");
+let sSlider = document.getElementById("seperate");
+let cSlider = document.getElementById("cohes");
+let accSlider = document.getElementById("accel");
+let percSlider = document.getElementById("rangeRange");
+
+let percChecked = document.getElementById("rangeCheck");
+let treeChecked = document.getElementById("qTree");
+
+function subV(final, initial){
+  return new Vector(final.x-initial.x, final.y-initial.y);
+}
+
+function addV(i, f){
+  return new Vector(i.x + f.x, i.y + f.y);
+}
+
+class Vector{
+  constructor(x, y) {
+      this.x = x;
+      this.y = y;
+      this.length = this.mag();
+  }
+
+  rotateTo(angle){
+      this.x = Math.cos(angle)*this.length;
+      this.y = Math.sin(angle)*this.length;
+  }
+
+  rotateBy(angle){
+      this.x = Math.cos(angle)*this.length;
+      this.y = Math.sin(angle)*this.length;
+  }
+
+  add(v){
+      this.x = this.x + v.x;
+      this.y = this.y + v.y;
+      this.length = this.mag();
+  }
+
+  mag(){
+      return Math.sqrt(this.x**2 + this.y**2);
+  }
+
+  setMag(len){
+      this.x = this.x*len/this.length;
+      this.y = this.y*len/this.length;
+      if(this.length == 0){
+          
+      }
+      this.length = len;
+  }
+
+  multMag(len){
+      this.x = this.x*len
+      this.y = this.y*len;
+      this.length = this.length*len;
+  }
+
+  copy(){
+      return new Vector(this.x, this.y);
+  }
+
+  normal(){
+      return new Vector(this.x/this.length, this.y/this.length);
+  }
+
+}
+
+class Segment{
+  constructor() {
+  }
+
+  init2Pos(pos1, pos2, width){
+      this.pos1 = pos1;
+      this.pos2 = pos2;
+      this.dir = subV(pos2, pos1);
+      
+      this.length = this.dir.mag();
+      this.width = width;
+      this.angle = Math.atan2(this.dir.y,this.dir.x);
+      return this;
+  }
+
+  initDir(pos1, dir, width){
+      this.pos1 = pos1;
+      this.dir = dir;
+      this.pos2 = addV(pos1, dir);
+      
+      this.width = width;
+      this.angle = Math.atan2(this.dir.y,this.dir.x);
+      this.length = dir.mag();
+      return this;
+  }
+
+  initAng(pos1, length, angle, width){
+      this.pos1 = pos1;
+      this.dir = new Vector(Math.cos(angle)*length, Math.sin(angle)*length);
+      this.pos2 = addV(pos1, this.dir);
+      
+      this.length = length;
+      this.angle = angle;
+      this.width = width;
+      return this;
+  }
+
+  rotate(angle){
+      this.dir.rotateTo(angle);
+      this.angle = Math.atan2(this.dir.y,this.dir.x);
+      this.pos2 = addV(this.pos1, this.dir);
+  }
+
+  moveT(endPos){
+      this.pos1 = endPos;
+      this.pos2 = addV(this.pos1, this.dir);
+  }
+  moveH(endPos){
+      this.pos2 = endPos;
+      this.pos1 = subV(this.pos2, this.dir);
+  }
+
+  follow(targetPos){
+      let temp = subV(targetPos, this.pos1);
+      let angle = Math.atan2(temp.y,temp.x);
+      this.rotate(angle);
+
+      this.moveH(targetPos);
+  }
+
+  draw(){
+      drawLin(ctxW, this.pos1.x, this.pos1.y, this.pos2.x, this.pos2.y, "#000000", this.width);
+  }
+}
+
+class Appendage{
+  constructor(numSegs, id){
+      this.segments = [];
+      this.velocity = new Vector(Math.random()*2 -1,Math.random()*2 - 1);
+      this.velocity.multMag(3);
+      this.acceleration = new Vector(0,0);
+      let segLen = 10;
+      this.fullLen = numSegs*segLen*1.3;
+      this.id = id;
+      for(let i = 0; i < numSegs; i++){
+          let x = .1 * Width + Math.random() * Width * .8;
+          // let x = Width/2;
+          let y = .1 * Height + Math.random() * Height * .8;
+          // let y = Height/2;
+          let posT = new Vector(x,y);
+          let posH = new Vector(x + segLen ,y + segLen);
+          this.segments.push(new Segment().init2Pos(posT, posH, i/2+2));
+      }
+      this.head = this.segments[this.segments.length-1];
+      
+  }
+
+  collision(){
+      let end = this.segments[this.segments.length-1];
+      if(end.pos2.x > Width + this.fullLen){
+          end.moveH(new Vector(-this.fullLen, end.pos2.y));
+          
+      }else if(end.pos2.x < -this.fullLen){
+          // end.moveH(new Vector(Width+this.fullLen, end.pos2.y));
+          end.moveH(new Vector(Width + this.fullLen, end.pos2.y));
+          
+      }
+      
+      if(end.pos2.y > Height+this.fullLen){
+          end.moveH(new Vector(end.pos2.x, -this.fullLen));
+          
+      }else if(end.pos2.y < -this.fullLen){
+          end.moveH(new Vector(end.pos2.x, Height+this.fullLen));
+          
+      }
+  }
+
+  applyForce(force){
+      let maxAccel = accSlider.value/7;
+      
+      this.acceleration = addV(this.acceleration, force);
+      if(this.acceleration.length > maxAccel){
+          this.acceleration.setMag(maxAccel);
+      }
+  }
+
+  trail(){
+      let maxSpeed = 30;
+      let minSpeed = 10;
+      this.velocity = addV(this.velocity, this.acceleration);
+      if(this.velocity.length > maxSpeed){
+          this.velocity.setMag(maxSpeed);
+      }else if(this.velocity.length < minSpeed){
+          this.velocity.setMag(minSpeed);
+      }
+      let nextPos = addV(this.segments[this.segments.length-1].pos2, this.velocity);
+      this.follow(nextPos);
+
+  }
+
+  follow(targetPos){
+      let pos = targetPos;
+      for(let i = this.segments.length-1; i >= 0; i--){
+          this.segments[i].follow(pos);
+          pos = this.segments[i].pos1.copy();
+      }
+  }
+
+  draw(){
+      //redudant since joints for each segment are drawn twice
+      //also change all segments[segments.length-1] with .head
+      
+      for(let i = 0; i < this.segments.length; i++){
+          this.segments[i].draw();
+      }
+  }
+
+  update(){
+      this.collision();
+      this.trail();
+      this.draw();
+  }
+}
+
+class Fleet{
+  constructor(numAgents, numSegs){
+      this.Apps = [];
+      for(let i = 0; i < numAgents; i++){
+          this.Apps.push(new Appendage(numSegs, i));
+      }
+  }
+
+  returnPoints(){
+      let els = [];
+      for(let i = 0; i < this.Apps.length; i++){
+          els.push(this.Apps[i].head.pos2);
+      }
+      return els;
+  }
+
+  flock(){
+      for(let i = 0; i < this.Apps.length; i++){
+          let curApp = this.Apps[i];
+          let nearbyApps = this.getNearby(curApp);
+          if(nearbyApps.length == 0){
+              continue;
+          }
+          
+          let avPos = new Vector(0,0);
+          let avDir = new Vector(0,0);
+          let avDir1 = new Vector(0,0);
+
+          for(let j = 0; j < nearbyApps.length; j++){
+              let tempApp = nearbyApps[j];
+              
+              avPos.add(tempApp.head.pos2);//cohesion
+              let connect = subV(curApp.head.pos2, tempApp.head.pos2);
+              connect.multMag(1/connect.length);
+              avDir.add(connect);//seperation
+              avDir1.add(tempApp.head.dir.normal());//align
+          }
+
+          let totalForce = new Vector(0,0);
+
+          avDir.multMag(sSlider.value/10);
+          let sepSteer = subV(avDir, curApp.velocity);
+          
+          let drawAvDir = addV(curApp.head.pos2, avDir);
+          
+          
+          totalForce.add(sepSteer)
+          
+          avPos.multMag(1/nearbyApps.length);
+          
+          let coh = subV(avPos, curApp.head.pos2);
+          coh.multMag(cSlider.value/10);
+          let cohSteer = subV(coh, curApp.velocity)
+          
+          let drawCoh = addV(curApp.head.pos2, coh);
+          
+
+          totalForce.add(cohSteer)
+
+          avDir1 = avDir1.normal();
+          let temp = curApp.velocity.normal();// maybe change to dir
+          let align = subV(avDir1,temp);
+
+          align.multMag(aSlider.value/10);
+
+          let alignSteer = subV(align, curApp.velocity)
+          let drawAlign = addV(curApp.head.pos2, align);
+          
+          
+          totalForce.add(alignSteer)
+          
+          curApp.applyForce(totalForce);
+      }
+  }
+
+  getNearby(app){
+      let nearby = [];
+      let range = percSlider.value*4;
+      
+      
+      let tempRoot = root.search(app.head.pos2);
+      if(tempRoot == null){
+          return [];
+      }
+      
+      let pos = new Vector(app.head.pos2.x - range, app.head.pos2.y - range);
+      if(percChecked.checked){
+          drawSRect(ctxW, pos.x, pos.y, 2*range, 2*range, "#0000ff");
+      }
+      
+      let nearbyPossibleApps = tempRoot.getCloseby(pos, 2*range, 2*range);
+      
+      // for(let i = 0; i < this.Apps.length; i++){
+      for(let i = 0; i < nearbyPossibleApps.length; i++){
+          // let tempApp = this.Apps[i];
+          let tempApp = nearbyPossibleApps[i];
+          if(tempApp.id == app.id){
+              continue;
+          }
+          
+          let dist = subV(app.segments[app.segments.length-1].pos2, tempApp.segments[tempApp.segments.length-1].pos2).length;
+          if(dist < range){
+              nearby.push(tempApp);
+          }
+          
+      }
+      return nearby;
+  }
+
+  update(){
+      this.flock();
+      for(let i = 0; i < this.Apps.length; i++){
+          let a = this.Apps[i];
+          a.update();
+      }
+  }
+}
+
+// function pInsideSquare(p, corner, w, h){
+//   return !(
+//       p.x > corner.x + w ||
+//       p.x < corner.x ||
+//       p.y > corner.y + h ||
+//       p.y < corner.y
+//   );
+// }
+
+class Quad{
+  constructor(par, index, els){
+      if(par == "root"){
+          this.parent = null;
+          this.corner = new Vector(0,0);
+          this.width = Width;
+          this.height = Height;
+      }else{
+          this.parent = par;
+          this.width = par.width/2;
+          this.height = par.height/2;
+          let x = (index%2)*this.width;
+          let y = (Math.floor(index/2))*this.height;
+          
+          let newX = par.corner.x + x;
+          let newY = par.corner.y + y;
+          this.corner = new Vector(newX, newY);
+      }
+      this.elements = els;
+      this.kids = [];
+      if(this.elements.length > 1){
+          this.allocate();
+      }
+  }
+
+
+  //returns smallest quad tree with point in it
+  search(p){
+      if(this.checkInside(p) == false){
+          return null;
+      }
+      if(this.elements.length == 1){
+          
+          return this;
+      }
+      for(let i = 0; i < this.kids.length; i++){
+          if(this.kids[i].checkInside(p) == true){
+              return this.kids[i].search(p);
+          }
+      }
+  }
+
+  draw(){
+      drawSRect(ctxW, this.corner.x, this.corner.y, this.width, this.height, "#000000");
+      for(let i = 0; i < this.kids.length; i++){
+          this.kids[i].draw();
+      }
+  }
+
+  allocate(){
+      let els = [[],[],[],[]];
+      for(let i = 0; i < this.elements.length; i++){
+          for(let j = 0; j < 4; j++){
+
+              if(this.checkInsideSub(j, this.elements[i].head.pos2) == true){
+                  els[j].push(this.elements[i]);
+                  break;
+              }
+          }
+      }
+      for(let i = 0; i < 4; i++){
+          this.kids.push(new Quad(this, i, els[i]));
+      }
+  }
+
+  checkInside(p){
+      return (
+      p.x > this.corner.x && 
+      p.x < this.corner.x + this.width && 
+      p.y > this.corner.y && 
+      p.y < this.corner.y + this.height);
+  }
+
+  checkInsideSub(i, p){
+      let x = this.corner.x + (i%2)*this.width/2;
+      let y = this.corner.y + Math.floor(i/2)*this.height/2;
+      return (p.x > x && 
+      p.x < x + this.width/2 && 
+      p.y > y && 
+      p.y < y + this.height/2);
+  }
+  //if square intersects this quad
+  intersect(pos, w, h){
+      return !(
+      this.corner.x > pos.x + w || 
+      this.corner.x + this.width < pos.x ||
+      this.corner.y > pos.y + h ||
+      this.corner.y + this.height < pos.y
+      );
+  }
+  //if rect is completely within quad
+  totallyWithin(corner, w, h){
+      return(
+          corner.x > this.corner.x &&
+          corner.x + w < this.corner.x + this.width &&
+          corner.y > this.corner.y &&
+          corner.y + h < this.corner.y + this.height
+      );
+  }
+
+  getCloseby(pos, w, h){
+      // let found = [];
+      if(!this.intersect(pos, w, h)){
+          // return found;
+          return [];
+      }
+      //also check if range goes past borders
+      if(this.totallyWithin(pos, w, h) == false){
+          if(this.parent == null){
+              return this.elements;
+          }
+          return this.parent.getCloseby(pos, w, h);
+      }else{
+          
+          return this.elements;
+      }
+  }
+}
+
+let wormRunApp = null;
+let wormFleet;
+let root;
+
+function initWorms(){
+  wormRunApp = setInterval(updateWorms, 100);
+  wormFleet = new Fleet(300, 5);
+  root = new Quad("root", null, wormFleet.Apps);
+}
+
+function updateWorms(){
+  clearGraph(ctxW, wormCanvas);
+  root = new Quad("root", null, wormFleet.Apps);
+  if(treeChecked.checked){
+      root.draw();
+  }
+  wormFleet.update();
+}
+
+function hideWorms(){
+  clearInterval(wormRunApp);
+  wormRunApp = null;
+  wormFleet = null;
+  root = null;
+}
+
 getScores();
 getRequests();
 loadMatchUpPlayers();
+// displayMovies();

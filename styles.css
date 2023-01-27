@@ -7,6 +7,18 @@
     /* padding: 10px; */
 }
 
+.movieBox{
+    background-color: rgb(223, 209, 107)
+}
+
+.upVoteBox{
+    background-color: rgb(107, 223, 134)
+}
+
+.downVoteBox{
+    background-color: rgb(223, 107, 107)
+}
+
 .navButton{
     width: fit-content;
     height: 15px;
@@ -24,9 +36,43 @@
     background-color: rgb(219, 110, 233);
 }
 
+#movie{
+    background-color: rgb(184, 216, 75);
+}
+
+#worms{
+    background-color: rgb(107, 145, 219);
+}
+
+#game{
+    background-color: rgb(211, 30, 39);
+}
+
+#proc{
+    background-color: rgb(254, 250, 30);
+}
+
 #visualContent{
     display: none;
 }
+
+#movieContent{
+    display: none;
+}
+
+#wormContent{
+    display: none;
+}
+
+#procContent{
+    display: none;
+}
+
+#gameContent{
+    display: none;
+}
+
+
 
 #left {
     background-color: rgb(80, 176, 80);
@@ -138,6 +184,16 @@ td {
     border: 2px solid #000000;
     /* width: 80%; */
     /* height: 80%; */
+}
+
+#wormCanvas{
+    display: block;
+    border: 2px solid #000000;
+}
+
+#procCanvas{
+    display: block;
+    border: 2px solid #000000;
 }
 
 .requestBox {

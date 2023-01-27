@@ -83,6 +83,18 @@
     <div id = "navBar">
         <div id = "main" class = "navButton">Main</div>
         <div id = "visual" class = "navButton">Visuals</div>
+        <div id = "movie" class = "navButton">Movies</div>
+        <div id = "worms" class = "navButton">Worms</div>
+        <div id = "proc" class = "navButton">Proc</div>
+        <div id = "game" class = "navButton">Game</div>
+    </div>
+
+    <div id = "movieContent">
+        Vote for Movies Here!
+        <label for="moveInput">Input Movie:</label><br>
+        <input type="text" id="movieInput" name="movieInput"><br>
+        <input id = "movieSend" type="submit" value="Submit Movie">
+        <div id = "moviesDisplay"></div>
     </div>
 
     <div id = "visualContent">
@@ -95,6 +107,47 @@
         <div id = "gamesDisplay">
             <table id = "gamesTable"></table>
         </div>
+    </div>
+
+    <div id = "procContent">
+        
+        <div>Procedural!</div>
+        <canvas id="procCanvas" width="1200" height="700"></canvas>
+    </div>
+
+    <div id = "wormContent">
+        <canvas id="wormCanvas" width="1200" height="700"></canvas>
+        <input type="button" id = "reset" name = "reset"><br>
+
+        <input type="number" id = "fr" name = "fr">
+        <label for="fr">Frame Rate</label><br>
+        
+        <input type="checkbox" id = "qTree" name = "qTree">
+        <label for="qTree">Show Tree</label><br>
+        
+        <input type="checkbox" id = "rangeCheck" name = "range">
+        <label for="range">Show Perception</label>
+
+        <input type="range" min="1" max="50" value="25" id="rangeRange" name = "perc">
+        <label for="perc">Perception</label><br>
+        
+        <input type="range" min="0" max="50" value="25" id="align" name = "align">
+        <label for="align">Align</label><br>
+        
+        <input type="range" min="0" max="50" value="15" id="seperate">
+        <label for="seperate">Seperation</label><br>
+        
+        <input type="range" min="0" max="50" value="5" id="cohes">
+        <label for="cohes">Cohesion</label><br>
+
+        <input type="range" min="1" max="50" value="25" id="accel">
+        <label for="cohes">Acceleration</label><br>
+    </div>
+
+    <div id = "gameContent">
+        
+        <div>Game!</div>
+        <canvas id="gameCanvas" width="1200" height="700"></canvas>
     </div>
 
     <div id = "mainContent">

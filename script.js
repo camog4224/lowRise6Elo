@@ -86,7 +86,7 @@ let moviesDisplay = document.getElementById("moviesDisplay");
 let movieInput = document.getElementById("movieInput");
 
 let movieSendButton = document.getElementById("movieSend");
-movieSendButton.addEventListener("click", addMovie);
+movieSendButton.addEventListener("click", reqAddMovie);
 
 const k = 32;
 const d = 400;
@@ -153,49 +153,250 @@ async function askForSignIn() {
 const thing =
 	"244570148069-6is73a7sohagu36v3bhov3s3at1hluvp.apps.googleusercontent.com";
 
-// async function displayMovies(){
-//   let info = await allMovies();
-//   for(let i = 0; i < info.length; i++){
+async function displayMovies() {
+	const name = await curUser();
+	let info = await allMovies();
+	for (let i = 0; i < info.length; i++) {
+		let movieBox = document.createElement("DIV");
+        movieBox.classList.add("movieBox");
 
-//     let movieBox = document.createElement("DIV");
-//     movieBox.innerHTML = info[i].title;
-//     movieBox.style.classList.add("movieBox");
+		let sup = searchVoters(info[i].supporters, name);
+		let crit = searchVoters(info[i].critics, name);
+		let voted = sup || crit;
 
-//     let upVote = document.createElement("DIV");
-//     upVote.innerHTML = "Upvotes : " + info[i].supporters.length;
-//     upVote.style.classList.add("upVoteBox");
+        let movieTitle = document.createElement("DIV");
+        movieTitle.innerHTML = info[i].title;
+        movieTitle.classList.add("movieTitle");
+		// if (voted == true) {
+		// 	movieBox.classList.add("voted");
+		// }
 
-//     let downVote = document.createElement("DIV");
-//     downVote.innerHTML = "Downvotes : " + info[i].critics.length;
-//     downVote.style.classList.add("downVoteBox");
+		// let upVote = document.createElement("DIV");
+		// upVote.innerHTML = "Upvote";
+		// upVote.classList.add("upVoteBox");
+        // if (sup == true) {
+        //     upVote.classList.add("voted");
+        //     upVote.style.border = "5px solid #eeff02";
+        // }
+        let upVote = document.createElement("img");
+        if(sup == true){
+            upVote.src = "/imgs/upFull.png";
+        }else{
+            upVote.src = "/imgs/upEmpty.png";
+        }
+        upVote.classList.add("movieVote");
+		upVote.addEventListener("click", function () {
+			voteMovie(info[i].title, true);
+		});
 
-//     movieBox.appendChild(upVote);
-//     movieBox.appendChild(downVote);
-//     moviesDisplay.appendChild(movieBox);
-//   }
-// }
+		// let downVote = document.createElement("DIV");
+		// downVote.innerHTML = "Downvote";
+		// downVote.classList.add("downVoteBox");
+        // if (crit == true) {
+        //     downVote.classList.add("voted");
+        //     downVote.style.border = "5px solid #eeff02";
+        // }
+        let downVote = document.createElement("img");
+        if(crit == true){
+            downVote.src = "/imgs/downFull.png";
+        }else{
+            downVote.src = "/imgs/downEmpty.png";
+        }
+        downVote.classList.add("movieVote");
 
-async function addMovie(name, euid) {
+		downVote.addEventListener("click", function () {
+			voteMovie(info[i].title, false);
+		});
+
+		let lnBreak = document.createElement("br");
+		let scoreBox = document.createElement("DIV");
+		scoreBox.innerHTML = info[i].score;
+        scoreBox.classList.add("movieScore");
+        
+        movieBox.appendChild(movieTitle);
+		// movieBox.appendChild(lnBreak);
+		movieBox.appendChild(upVote);
+		movieBox.appendChild(scoreBox);
+		movieBox.appendChild(downVote);
+		moviesDisplay.appendChild(movieBox);
+	}
+}
+
+async function curUser() {
 	if (checkAccountStatus() == false) {
 		return;
 	}
-	let movTitle = movieInput.value;
-	// let name =
+	let curUser = auth.currentUser;
+	let user = await matchingAccount(curUser.uid);
+	return user[0].name;
+}
 
+async function refreshMovies() {
+	while (moviesDisplay.lastElementChild) {
+		moviesDisplay.removeChild(moviesDisplay.lastElementChild);
+	}
+	await displayMovies();
+}
+
+async function voteMovie(title, voteDec) {
+	//check that this player has not voted in the same way before,
+	//if they voted differently, remove that vote, change score, and add new vote
+	let name = await curUser();
+	let movieArr = await matchingMovies(title);
+	let movie = movieArr[0];
+	let supVote = searchVoters(movie.supporters, name);
+	let critVote = searchVoters(movie.critics, name);
+	let voted = Boolean(supVote || critVote);
+	const refreshTime = 500;
+	if (voted == false) {
+		await newMovieVote(title, voteDec, name);
+		setTimeout(refreshMovies, refreshTime);
+	} else {
+        let index;
+        let newSupporters = movie.supporters;
+        let newCritics = movie.critics;
+		if (supVote != voteDec) {
+			//switch votes
+			if (voteDec == false) {
+				index = returnIndexVoter(movie.supporters, name);
+				newSupporters = movie.supporters.splice(index, 1);
+				movie.critics = movie.critics.concat([name]);
+			} else {
+				index = returnIndexVoter(movie.critics, name);
+				newCritics = movie.critics.splice(index, 1);
+				movie.supporters = movie.supporters.concat([name]);
+			}
+			await swapMovieVote(title, movie.supporters, movie.critics);
+			setTimeout(refreshMovies, refreshTime);
+		} else {
+            //remove original vote
+            if (voteDec == false) {
+				index = returnIndexVoter(movie.critics, name);
+				newCritics = movie.critics.splice(index, 1);
+            } else {
+				index = returnIndexVoter(movie.supporters, name);
+				newSupporters = movie.supporters.splice(index, 1);
+			}
+            await swapMovieVote(title, movie.supporters, movie.critics);
+			setTimeout(refreshMovies, refreshTime);
+		}
+	}
+}
+
+function searchVoters(arr, goal) {
+	for (let i = 0; i < arr.length; i++) {
+		if (arr[i] == goal) {
+			return true;
+		}
+	}
+	return false;
+}
+
+function returnIndexVoter(arr, goal) {
+	for (let i = 0; i < arr.length; i++) {
+		if (arr[i] == goal) {
+			return i;
+		}
+	}
+}
+
+async function swapMovieVote(movTitle, newSup, newCrit) {
+	const sfRef = doc(db, "movies", movTitle);
+	try {
+		await runTransaction(db, async (transaction) => {
+			const sfDoc = await transaction.get(sfRef);
+			let info = await sfDoc.data();
+			if (!sfDoc.exists()) {
+				throw "Document does not exist!";
+			}
+			let data = {
+				euid: info.euid,
+				title: info.title,
+				supporters: newSup,
+				critics: newCrit,
+				readableTime: info.readableTime,
+				score: newSup.length - newCrit.length,
+			};
+			transaction.update(sfRef, data);
+		});
+	} catch (e) {}
+}
+
+async function newMovieVote(movTitle, victory, name) {
+	const sfRef = doc(db, "movies", movTitle);
+	try {
+		await runTransaction(db, async (transaction) => {
+			const sfDoc = await transaction.get(sfRef);
+			let info = await sfDoc.data();
+			if (!sfDoc.exists()) {
+				throw "Document does not exist!";
+			}
+			let data = {
+				euid: info.euid,
+				title: info.title,
+				supporters: info.supporters,
+				critics: info.critics,
+				readableTime: info.readableTime,
+				score: info.score + Number(victory) * 2 - 1,
+			};
+			if (victory == true) {
+				data.supporters = info.supporters.concat([name]);
+			} else {
+				data.critics = info.critics.concat([name]);
+			}
+			transaction.update(sfRef, data);
+		});
+	} catch (e) {}
+}
+
+async function reqAddMovie() {
+	if (checkAccountStatus() == false) {
+		return;
+	}
+	let curUser = auth.currentUser;
+	let user = await matchingAccount(curUser.uid);
+	if (user.length == 0) {
+		alert("not signed in");
+	} else if (user.length == 1) {
+		let name = user[0].name;
+		let movTitle = movieInput.value;
+		let movs = await matchingMovies(movTitle);
+		if (movs.length == 0) {
+			await addMovie(name, curUser.uid);
+		}
+	}
+}
+
+async function matchingMovies(title) {
+	const ref = collection(db, "movies");
+	const q = await query(ref, where("title", "==", title));
+	let temp = await getDocs(q);
+	let matchingMovies = [];
+	await temp.forEach((doc) => {
+		let d = doc.data();
+		matchingMovies = matchingMovies.concat([d]);
+	});
+	return matchingMovies;
+}
+
+async function addMovie(name, euid) {
+	let movTitle = movieInput.value;
 	let data = {
 		euid: euid,
 		title: movTitle,
 		supporters: [name],
 		critics: [],
-		time: [Date.now()],
-		readableTime: ["" + new Date(Date.now())],
+		readableTime: "" + new Date(Date.now()),
+		score: 1,
 	};
 	await setDoc(doc(db, "movies", movTitle), data);
-	// await setDoc(collection(db, "playerInfo", name), );
 }
 
 async function allMovies() {
-	const querySnapshot = await getDocs(collection(db, "movies"));
+	const ref = collection(db, "movies");
+	const q = await query(ref, orderBy("score", "desc"));
+	const querySnapshot = await getDocs(q);
+
 	let completeInfo = [];
 	await querySnapshot.forEach((doc) => {
 		let d = doc.data();
@@ -218,7 +419,6 @@ async function displayMatches() {
 let canvas = document.getElementById("myCanvas");
 
 let ctx = canvas.getContext("2d");
-// plotPoints();
 
 function clearGraph(ct, canv) {
 	ct.clearRect(0, 0, canv.width, canv.height);
@@ -271,22 +471,9 @@ async function plotPoints() {
 		let x2 = points[i][0];
 		let y2 = points[i][1];
 		let c = points[i][2];
-		drawTex(ctx, 2 - r, y2 - r - 3, points[i][3]);
+		drawTex(ctx, x2 - 2 * r, y2 - 2 * r, points[i][3]);
 		drawCirc(ctx, x2, y2, r, c);
 	}
-
-	// for(let i = 0; i < numPoints; i++){
-	//   let x2 = points[i][0];
-	//   let y2 = points[i][1];
-	//   let c = points[i][2];
-	//   drawTex(x2-r, y2-r-3,points[i][3]);
-	//   drawCirc(x2,y2,r,c);
-	//   if(i != 0){
-	//     let x1 = points[i-1][0];
-	//     let y1 = points[i-1][1]
-	//     drawLin(x1,y1,x2,y2,"#000000");
-	//   }
-	// }
 }
 
 function drawCirc(canv, x, y, r, c) {
@@ -368,52 +555,6 @@ async function makePastGameTable(info, oppInfo) {
 	gamesDisplay.appendChild(tab);
 }
 
-// async function findOpponentsForPlayer(){
-//     let name = gamesPerson.value;
-//     let playerInfo = await getPlayer(name);
-//     let opponents = [];
-//     // if(playerInfo.euid == null){
-
-//     //     return;
-//     // }
-
-//     for(let i = 1; i < playerInfo.readableTime.length; i++){
-
-//         let matchingAccounts = await queryTime(playerInfo.readableTime[i], name);
-//         if(matchingAccounts.length > 0){
-//             if(matchingAccounts.length > 1){
-
-//             }
-//             opponents = opponents.concat([matchingAccounts[0].name]);
-//         }else{
-//             opponents = opponents.concat([playerInfo.readableTime[i]]);
-
-//         }
-//     }
-
-//     await updateOpponents(name, opponents);
-
-// }
-
-// async function queryTime(time, name){
-//     const ref = collection(db, "playerInfo");
-//     // let increment = 100;
-//     // const q = await query(ref, where("time", "array-contains", time), where("euid", "!=", uid));
-//     const q = await query(ref, where("readableTime", "array-contains", time));
-//     // const q = await query(ref, where("time", "<", time + increment), where("time", ">", time - increment));
-
-//     let temp = await getDocs(q);
-//     let matchingAccounts = [];
-//     await temp.forEach((doc) => {
-//       let d = doc.data();
-//       d.name = doc.id;
-//       if(d.name != name){
-//         matchingAccounts = matchingAccounts.concat([d]);
-//       }
-//     });
-//     return matchingAccounts;
-// }
-
 let tabs = {
 	mainContent: mainContent,
 	movieContent: movieContent,
@@ -428,11 +569,11 @@ function showTab(key) {
 	for (let i = 0; i < allKeys.length; i++) {
 		if (allKeys[i] == key) {
 			tabs[allKeys[i]].style.display = "inline";
-			initSpec(key);
 		} else {
 			tabs[allKeys[i]].style.display = "none";
 		}
 	}
+	initSpec(key);
 	hideAll(key);
 }
 
@@ -441,13 +582,16 @@ function initSpec(key) {
 		initWorms();
 	} else if (key == "procContent") {
 		initProc();
+	} else if (key == "movieContent") {
+		refreshMovies();
 	}
 }
 function hideAll(key) {
-	if (key == "wormContent") {
-		hideProc();
-	} else if (key == "procContent") {
+	if (key != "wormContent") {
 		hideWorms();
+	}
+	if (key != "procContent") {
+		hideProc();
 	}
 }
 
@@ -460,7 +604,7 @@ async function addID() {
 	}
 	let curUser = auth.currentUser;
 	let curMatchingUsers = await matchingAccount(curUser.uid);
-	//if
+
 	if (curMatchingUsers.length > 0) {
 		displayUserInfo.innerHTML = "Player with this email already exists";
 		return;
@@ -516,7 +660,6 @@ async function signOutUser() {
 async function matchingAccount(euid) {
 	const ref = collection(db, "playerInfo");
 	const q = await query(ref, where("euid", "==", euid));
-	// const q = await query(ref, orderBy("currentElo", "desc"));
 	let temp = await getDocs(q);
 	let matchingAccounts = [];
 	await temp.forEach((doc) => {
@@ -540,12 +683,9 @@ async function addPlayer(name, euid) {
 		readableTime: ["" + new Date(Date.now())],
 	};
 	await setDoc(doc(db, "playerInfo", name), data);
-	// await setDoc(collection(db, "playerInfo", name), );
 }
 
 async function addGameRequest(info) {
-	// await setDoc(doc(db, "pendingGames", "UNIQUE ID"), info);
-
 	const docRef = await addDoc(collection(db, "pendingGames"), info);
 
 	return docRef.id;
@@ -574,7 +714,6 @@ async function getRequest(id) {
 		return await docSnap.data();
 	} else {
 		// doc.data() will be undefined in this case
-
 		return -1;
 	}
 }
@@ -781,7 +920,6 @@ async function resolveMatchRequest(reqBox, approve) {
 	let reqInfo = await getRequest(reqBox.dataset.id);
 	if (checkAccountStatus() == false) {
 		displayUserInfo.innerHTML = "log in to resolve request";
-
 		return;
 	}
 	let curUser = auth.currentUser;
@@ -991,39 +1129,6 @@ async function formalizeMatch(startInfo) {
 //     ME2.innerHTML = Math.round(1000*eb)/10. + "%";
 
 // }
-
-// function calculate(){
-//     let ra = parseFloat(elo1.value);
-//     let rb = parseFloat(elo2.value);
-
-//     let qa = 10. ** (ra/d);
-//     let qb = 10. ** (rb/d);
-
-//     let ea = qa / (qa + qb);
-//     E1.innerHTML = Math.round(1000*ea)/10. + "%";
-//     let eb = qb / (qa + qb);
-//     E2.innerHTML = Math.round(1000*eb)/10. + "%";
-//     let checkOption = document.querySelector('input[name="winner"]:checked');
-
-//     let winner = checkOption.value;
-//     let sa;
-//     let sb;
-//     if(winner == "aWinner"){
-//         sa = 1.;
-//         sb = 0.;
-
-//     }else{
-//         sa = 0.;
-//         sb = 1.;
-
-//     }
-
-//     let rea = Math.round(ra + (k * (sa - ea)));
-//     Re1.innerHTML = "" + rea;
-//     let reb = Math.round(rb + k * (sb - eb));
-//     Re2.innerHTML = "" + reb;
-
-// };
 
 async function loadMatchUpPlayers() {
 	let allPlayerInfo = await eloRankedDocs();
@@ -1657,9 +1762,7 @@ function updateWorms() {
 
 function hideWorms() {
 	clearInterval(wormRunApp);
-	console.log(wormRunApp);
 	wormRunApp = null;
-	console.log(wormRunApp);
 	wormFleet = null;
 	root = null;
 }
@@ -1980,7 +2083,6 @@ function makeRotConns() {
 }
 
 async function updateSeg() {
-	console.log("AHH");
 	drawRotImages();
 	await loadRotImages();
 	clearGraph(ctxP, procCanvas);

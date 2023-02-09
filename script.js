@@ -167,17 +167,7 @@ async function displayMovies() {
         let movieTitle = document.createElement("DIV");
         movieTitle.innerHTML = info[i].title;
         movieTitle.classList.add("movieTitle");
-		// if (voted == true) {
-		// 	movieBox.classList.add("voted");
-		// }
 
-		// let upVote = document.createElement("DIV");
-		// upVote.innerHTML = "Upvote";
-		// upVote.classList.add("upVoteBox");
-        // if (sup == true) {
-        //     upVote.classList.add("voted");
-        //     upVote.style.border = "5px solid #eeff02";
-        // }
         let upVote = document.createElement("img");
         if(sup == true){
             upVote.src = "/imgs/upFull.png";
@@ -188,14 +178,6 @@ async function displayMovies() {
 		upVote.addEventListener("click", function () {
 			voteMovie(info[i].title, true);
 		});
-
-		// let downVote = document.createElement("DIV");
-		// downVote.innerHTML = "Downvote";
-		// downVote.classList.add("downVoteBox");
-        // if (crit == true) {
-        //     downVote.classList.add("voted");
-        //     downVote.style.border = "5px solid #eeff02";
-        // }
         let downVote = document.createElement("img");
         if(crit == true){
             downVote.src = "/imgs/downFull.png";
@@ -207,14 +189,11 @@ async function displayMovies() {
 		downVote.addEventListener("click", function () {
 			voteMovie(info[i].title, false);
 		});
-
-		let lnBreak = document.createElement("br");
 		let scoreBox = document.createElement("DIV");
 		scoreBox.innerHTML = info[i].score;
         scoreBox.classList.add("movieScore");
         
         movieBox.appendChild(movieTitle);
-		// movieBox.appendChild(lnBreak);
 		movieBox.appendChild(upVote);
 		movieBox.appendChild(scoreBox);
 		movieBox.appendChild(downVote);
@@ -493,10 +472,10 @@ function drawLin(ct, x1, y1, x2, y2, c, w) {
 	ct.stroke();
 }
 
-function drawTex(canv, x, y, text, c) {
-	canv.font = "12px Georgia";
-	canv.fillStyle = "#000000";
-	canv.fillText(text, x, y);
+function drawTex(ct, x, y, text, c) {
+	ct.font = "12px Georgia";
+	ct.fillStyle = "#000000";
+	ct.fillText(text, x, y);
 }
 
 function drawSRect(canv, x, y, w, h, c) {
@@ -505,9 +484,9 @@ function drawSRect(canv, x, y, w, h, c) {
 	canv.strokeRect(x, y, w, h);
 }
 
-function drawFRect(canv, x, y, w, h, c) {
-	canv.fillStyle = c;
-	canv.fillRect(x, y, w, h);
+function drawFRect(ct, x, y, w, h, c) {
+	ct.fillStyle = c;
+	ct.fillRect(x, y, w, h);
 }
 
 async function makePastGameTable(info, oppInfo) {
@@ -1227,22 +1206,27 @@ let wormCounter = 0;
 
 let randomize = document.getElementById("randomSpecs");
 
+let aLabel = document.getElementById("alignLabel");
 let aSlider = document.getElementById("align");
 const alMult = 0.1;
 let alConst = aSlider.value * alMult;
 
+let sLabel = document.getElementById("sepLabel");
 let sSlider = document.getElementById("seperate");
 const sepMult = 0.1;
 let sepConst = sSlider.value * sepMult;
 
+let cLabel = document.getElementById("cohesLabel");
 let cSlider = document.getElementById("cohes");
 const coMult = 0.1;
 let coConst = cSlider.value * coMult;
 
+let accLabel = document.getElementById("accelLabel");
 let accSlider = document.getElementById("accel");
 const accelMult = 0.15;
 let accelConst = accSlider.value * accelMult;
 
+let pLabel = document.getElementById("percLabel");
 let percSlider = document.getElementById("rangeRange");
 const percMult = 4;
 let percConst = percSlider.value * percMult;
@@ -1256,6 +1240,12 @@ function refreshSValues() {
 	coConst = cSlider.value * coMult;
 	accelConst = accSlider.value * accelMult;
 	percConst = percSlider.value * percMult;
+
+	aLabel.innerHTML = "Align : " + aSlider.value;
+	sLabel.innerHTML = "Seperation : " + sSlider.value;
+	cLabel.innerHTML = "Cohesion : " + cSlider.value;
+	accelLabel.innerHTML = "Acceleration : " + accSlider.value;
+	percLabel.innerHTML = "Perception : " + percSlider.value;
 }
 
 function randomizeWormSpecs() {
@@ -1603,15 +1593,6 @@ class Fleet {
 	}
 }
 
-// function pInsideSquare(p, corner, w, h){
-//   return !(
-//       p.x > corner.x + w ||
-//       p.x < corner.x ||
-//       p.y > corner.y + h ||
-//       p.y < corner.y
-//   );
-// }
-
 class Quad {
 	constructor(par, index, els) {
 		if (par == "root") {
@@ -1772,6 +1753,15 @@ let ctxP = procCanvas.getContext("2d");
 const procWidth = procCanvas.width;
 const procHeight = procCanvas.height;
 
+let colSlider = document.getElementById("procCol");
+let colSliderLabel = document.getElementById("procColLabel");
+
+let rowSlider = document.getElementById("procRow");
+let rowSliderLabel = document.getElementById("procRowLabel");
+
+let procReset = document.getElementById("procReset");
+procReset.addEventListener("click", initProc);
+
 let conns1 = {
 	end: ["111", "111", "101", "111"],
 	floor: ["000", "000", "000", "000"],
@@ -1781,7 +1771,7 @@ let conns1 = {
 	wall: ["111", "111", "111", "111"],
 	entry: ["111", "000", "111", "101"],
 	diagonal: ["111", "000", "000", "111"],
-	corner: ["111", "101", "101", "111"],
+	corner: ["111", "101", "101", "111"]
 };
 
 let cells = [];
@@ -1791,32 +1781,57 @@ let imgNames = Object.keys(conns1);
 let numImgs = imgNames.length;
 let imgs = new Array(numImgs);
 let imgsLocation = "imgs";
-let procRunApp;
-// let imgsLocation = "difimgs";
+let procRunApp = null;
 const imgSize = 100;
 let connectionArr;
 const numMakeCols = procWidth / imgSize;
-const numMakeRows = procHeight / imgSize;
+// const numMakeRows = procHeight / imgSize;
 
-const numCols = 30;
-const numRows = 15;
+let numCols = 50;
+let numRows = 25;
 
-const boxWidth = procWidth / numCols;
-const boxHeight = procHeight / numRows;
-const loadSpeed = 100;
+let boxWidth = procWidth / numCols;
+let boxHeight = procHeight / numRows;
+const loadSpeed = 50;
 
-function initProc() {
+function refreshProcValues(){
+	numCols = colSlider.value;
+	numRows = rowSlider.value;
+	
+	colSliderLabel.innerHTML = "Column Resolution : " + numCols;
+	rowSliderLabel.innerHTML = "Row Resolution : " + numRows;
+	boxWidth = procWidth / numCols;
+	boxHeight = procHeight / numRows;
+}
+
+async function firstInitProc(){
+	loadBaseImages();
+	setTimeout(stagger1, 1000);
+}
+
+async function stagger1(){
+	drawRotImages();
+	await loadRotImages();
+	clearGraph(ctxP, procCanvas);
+	drawIndexRotImages();
+	makeRotConns();
+}
+
+async function initProc() {
+	// await firstInitProc();
 	cells = [];
 	finished = false;
 	restart = false;
 	procRunApp = null;
-	loadBaseImages();
-	setTimeout(updateSeg, 1000);
+	refreshProcValues();
+	createMap(numCols, numRows, numImgs);
+	procRunApp = setInterval(updateMap, loadSpeed);
 }
 
 function hideProc() {
 	clearInterval(procRunApp);
 	procRunApp = null;
+	cells = [];
 }
 
 function createMap(w, h, s) {
@@ -1850,15 +1865,6 @@ class Cell {
 
 	pick() {
 		let index = Math.floor(Math.random() * this.info.length);
-		// let numTries = 0;
-		// for(let i = 0; i < numTries; i++){
-		//     let tempState = this.info[index];
-		//     if(tempState > 11){
-		//         index = Math.floor(Math.random()*this.info.length);
-		//     }else{
-		//         break;
-		//     }
-		// }
 		this.info = [this.info[index]];
 	}
 }
@@ -1983,6 +1989,15 @@ function reducePossibleStates(currentStates, givenSockets, adjSide) {
 	}
 	return newStates;
 }
+const colors = [
+	"red",
+	"orange",
+	"yellow",
+	"blue",
+	"purple",
+	"green",
+	"brown",
+];
 
 function drawMap() {
 	for (let i = 0; i < cells.length; i++) {
@@ -1990,37 +2005,31 @@ function drawMap() {
 			let x = i * boxWidth;
 			let y = j * boxHeight;
 			if (cells[i][j].info.length == 1) {
-				// drawFRect(x, y, boxWidth, boxHeight, colors[cells[i][j].info[0]]);
-				ctxP.drawImage(
-					imgs[cells[i][j].info[0]],
-					x,
-					y,
-					boxWidth,
-					boxHeight
-				);
+				ctxP.drawImage(imgs[cells[i][j].info[0]], x, y, boxWidth, boxHeight);
 			} else {
-				if (cells[i][j].propped == true) {
-					drawSRect(x, y, boxWidth, boxHeight, colors[0]);
-				}
-				// let tempText = cells[i][j].info;
-				// x += boxWidth/5;
-				// y += boxHeight/2;
-
-				// drawTex(x, y, tempText, "#000000");
+				drawFRect(ctxP, x, y, boxWidth, boxHeight, colors[(cells[i][j].info.length-1)%colors.length]);
 			}
 		}
 	}
 }
 
-function loadBaseImages() {
+async function loadBaseImages() {
 	for (let i = 0; i < numImgs; i++) {
 		let temp = new Image(imgSize, imgSize);
-		temp.src = imgsLocation + "/" + imgNames[i] + ".png";
+		temp.src = "/" + imgsLocation + "/" + imgNames[i] + ".png";
 		imgs[i] = temp;
 	}
 }
 
-function drawRotImages() {
+function drawBaseImages(){
+	for(let i = 0; i < numImgs; i++){
+		let x = (i % numMakeCols) * imgSize;
+		let y = Math.floor(i / numMakeCols) * imgSize;
+		ctxP.drawImage(imgs[i], x, y, boxWidth, boxHeight);
+	}
+}
+
+async function drawRotImages() {
 	for (let i = 0; i < numImgs * 4; i++) {
 		let x = (i % numMakeCols) * imgSize;
 		let y = Math.floor(i / numMakeCols) * imgSize;
@@ -2040,18 +2049,10 @@ async function loadRotImages() {
 	for (let i = 0; i < numImgs * 4; i++) {
 		let x = (i % numMakeCols) * imgSize;
 		let y = Math.floor(i / numMakeCols) * imgSize;
-		newImgs[i] = await createImageBitmap(canvas, x, y, imgSize, imgSize);
+		newImgs[i] = await createImageBitmap(procCanvas, x, y, imgSize, imgSize);
 	}
 	imgs = newImgs;
 	numImgs = imgs.length;
-}
-
-function drawBaseImages() {
-	for (let i = 0; i < numImgs; i++) {
-		let x = (i % 6) * 100;
-		let y = 50;
-		ctxP.drawImage(imgs[i], x, y);
-	}
 }
 
 function drawIndexRotImages() {
@@ -2082,25 +2083,11 @@ function makeRotConns() {
 	connectionArr = tempArrConns;
 }
 
-async function updateSeg() {
-	drawRotImages();
-	await loadRotImages();
-	clearGraph(ctxP, procCanvas);
-	drawIndexRotImages();
-	makeRotConns();
-
-	clearGraph(ctxP, procCanvas);
-	createMap(numCols, numRows, numImgs);
-	iterateBoard();
-	drawMap();
-
-	procRunApp = setInterval(updateMap, loadSpeed);
-}
-
 function updateMap() {
 	if (finished == false) {
 		if (restart == true) {
 			restart = false;
+			refreshProcValues();
 			createMap(numCols, numRows, numImgs);
 		}
 		clearGraph(ctxP, procCanvas);
@@ -2113,4 +2100,5 @@ function updateMap() {
 getScores();
 getRequests();
 loadMatchUpPlayers();
-// displayMovies();
+
+firstInitProc();

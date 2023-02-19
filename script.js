@@ -455,11 +455,11 @@ async function plotPoints() {
 	}
 }
 
-function drawCirc(canv, x, y, r, c) {
-	canv.fillStyle = c;
-	canv.beginPath();
-	canv.arc(x, y, r, 0, 2 * Math.PI);
-	canv.fill();
+function drawCirc(ct, x, y, r, c) {
+	ct.fillStyle = c;
+	ct.beginPath();
+	ct.arc(x, y, r, 0, 2 * Math.PI);
+	ct.fill();
 }
 
 function drawLin(ct, x1, y1, x2, y2, c, w) {
@@ -563,6 +563,8 @@ function initSpec(key) {
 		initProc();
 	} else if (key == "movieContent") {
 		refreshMovies();
+	} else if (key == "gameContent") {
+		initGame();
 	}
 }
 function hideAll(key) {
@@ -572,6 +574,9 @@ function hideAll(key) {
 	if (key != "procContent") {
 		hideProc();
 	}
+	if (key != "gameContent") {
+		hideGame();
+	}
 }
 
 async function addID() {
@@ -579,6 +584,7 @@ async function addID() {
 	//if logged in
 	if (checkAccountStatus() == false) {
 		displayUserInfo.innerHTML = "no one signed in";
+		alert("no one signed in");
 		return;
 	}
 	let curUser = auth.currentUser;
@@ -586,12 +592,14 @@ async function addID() {
 
 	if (curMatchingUsers.length > 0) {
 		displayUserInfo.innerHTML = "Player with this email already exists";
+		alert("Player with this email already exists");
 		return;
 	}
 
 	let curPlayerInfo = await getPlayer(name);
 	if (curPlayerInfo.euid != null) {
 		displayUserInfo.innerHTML = "Player already has associated email";
+		alert("Player already has associated email");
 		return;
 	}
 
@@ -612,6 +620,7 @@ async function addID() {
 		});
 
 		displayUserInfo.innerHTML = "ID ADDED";
+		alert("ID ADDED")
 	} catch (e) {}
 }
 
@@ -899,6 +908,7 @@ async function resolveMatchRequest(reqBox, approve) {
 	let reqInfo = await getRequest(reqBox.dataset.id);
 	if (checkAccountStatus() == false) {
 		displayUserInfo.innerHTML = "log in to resolve request";
+		alert("log in to resolve request");
 		return;
 	}
 	let curUser = auth.currentUser;
@@ -912,6 +922,7 @@ async function resolveMatchRequest(reqBox, approve) {
 			reqBox.remove();
 		} else {
 			displayUserInfo.innerHTML = "need to be opponent to accept";
+			alert("need to be opponent to accept");
 			return;
 		}
 	} else {
@@ -924,6 +935,7 @@ async function resolveMatchRequest(reqBox, approve) {
 		} else {
 			displayUserInfo.innerHTML =
 				"need to be either opponent or requester to reject request";
+			alert("need to be either opponent or requester to reject request")
 		}
 		// getRequests();
 	}
@@ -1000,12 +1012,15 @@ async function requestPlayer() {
 			} else {
 				displayUserInfo.innerHTML =
 					"account with this email already exists";
+				alert("account with this email already exists");
 			}
 		} else {
 			displayUserInfo.innerHTML = "player with this name already exists";
+			alert("player with this name already exists");
 		}
 	} else {
 		displayUserInfo.innerHTML = "NOT SIGNED IN, LOG IN TO JOIN";
+		alert("NOT SIGNED IN, LOG IN TO JOIN");
 	}
 }
 
@@ -1279,8 +1294,10 @@ class Vector {
 	}
 
 	rotateBy(angle) {
-		this.x = Math.cos(angle) * this.length;
-		this.y = Math.sin(angle) * this.length;
+		let curAngle = Math.atan2(this.y, this.x);
+		let newAngle = (curAngle + angle)%(2*Math.PI);
+		this.x = Math.cos(newAngle) * this.length;
+		this.y = Math.sin(newAngle) * this.length;
 	}
 
 	add(v) {
@@ -1989,15 +2006,6 @@ function reducePossibleStates(currentStates, givenSockets, adjSide) {
 	}
 	return newStates;
 }
-const colors = [
-	"red",
-	"orange",
-	"yellow",
-	"blue",
-	"purple",
-	"green",
-	"brown",
-];
 
 function drawMap() {
 	for (let i = 0; i < cells.length; i++) {
@@ -2007,7 +2015,7 @@ function drawMap() {
 			if (cells[i][j].info.length == 1) {
 				ctxP.drawImage(imgs[cells[i][j].info[0]], x, y, boxWidth, boxHeight);
 			} else {
-				drawFRect(ctxP, x, y, boxWidth, boxHeight, colors[(cells[i][j].info.length-1)%colors.length]);
+				drawFRect(ctxP, x, y, boxWidth, boxHeight, colorSMap[cells[i][j].info.length]);
 			}
 		}
 	}
@@ -2090,12 +2098,426 @@ function updateMap() {
 			refreshProcValues();
 			createMap(numCols, numRows, numImgs);
 		}
-		clearGraph(ctxP, procCanvas);
+		// clearGraph(ctxP, procCanvas);
 		iterateBoard();
 		drawMap();
 	} else {
 	}
 }
+
+class Point {
+	constructor(x, y, z){
+		this.x = x;
+		this.y = y;
+		this.z = z;
+	}
+
+	mult(m){
+		this.x = this.x*m;
+		this.y = this.y*m;
+		this.z = this.z*m;
+	}
+
+	sum(p){
+		this.x = this.x + p.x;
+		this.y = this.y + p.y;
+		this.z = this.z + p.z;
+	}
+
+	rMult(m){
+		return new Point(this.x*m, this.y*m, this.z*m);
+	}
+
+	rSum(p){
+		return new Point(this.x + p.x, this.y + p.y, this.z + p.z);
+	}
+
+	rBigSum(s1, p2, s2){
+		let tempS = this.rMult(s1);
+		let tempS2 = p2.rMult(s2);
+		return tempS.rSum(tempS2);
+	}
+
+	clean(){
+		this.x = Math.floor(this.x);
+		this.y = Math.floor(this.y);
+		this.z = Math.floor(this.z);
+	}
+}
+
+function makeColorSpline(colors, numPoints){
+	const numColors  = colors.length;
+	let tInterval = (numColors-1)/numPoints;
+	let cSpline = new Array(numPoints);
+	for(let i = 0; i < numPoints; i++){
+		let curT = tInterval * i;
+		let curColorIndex = Math.floor(curT);
+		let partT = curT - curColorIndex;
+		let a = interpLine(colors[curColorIndex], colors[curColorIndex+1], partT);
+		a.clean();
+		cSpline[i] = a;
+	}
+	return cSpline;
+}
+
+function interpLine(p1, p2, t){
+	let a = new Point(p2.x - p1.x, p2.y - p1.y, p2.z - p1.z);
+	a.mult(t);
+	a.sum(p1);
+	return a;
+}
+
+function convSplineToString(s){
+	let arr = new Array(s.length);
+	for(let i = 0; i < arr.length; i++){
+		arr[i] = "rgb(" + s[i].x + ", " + s[i].y + ", " + s[i].z + ")";
+	}
+	return arr;
+}
+
+let colorMap = makeColorSpline([new Point(230, 0, 0), new Point(100, 240, 30), new Point(50, 50, 230), new Point(20, 20, 70)], 36);
+let colorSMap = convSplineToString(colorMap);
+
+let gameLCanvas = document.getElementById("gameLCanvas");
+let gameRCanvas = document.getElementById("gameRCanvas");
+let ctxLG = gameLCanvas.getContext("2d");
+let ctxRG = gameRCanvas.getContext("2d");
+
+const gameLWidth = gameLCanvas.width;
+const gameLHeight = gameLCanvas.height;
+
+const gameRWidth = gameRCanvas.width;
+const gameRHeight = gameRCanvas.height;
+
+class Border{
+	constructor(a, b, w, c, canSee){
+		this.start = a;
+		this.end = b;
+		this.width = w;
+		this.c = c;
+		this.seen = canSee;
+	}
+
+	intersects(aStart, aEnd){
+		const x1 = this.start.x;
+		const y1 = this.start.y;
+		const x2 = this.end.x;
+		const y2 = this.end.y;
+
+		const x3 = aStart.x;
+		const y3 = aStart.y;
+		const x4 = aEnd.x;
+		const y4 = aEnd.y;
+		
+		const num1 = (x1 - x3)*(y3 - y4) - (y1 - y3)*(x3 - x4);
+		const den1 = (x1 - x2)*(y3 - y4) - (y1 - y2)*(x3 - x4);
+		const t = num1/den1;
+		
+		const num2 = (x1 - x3)*(y1 - y2) - (y1 - y3)*(x1 - x2);
+		const den2 = (x1 - x2)*(y3 - y4) - (y1 - y2)*(x3 - x4);
+		const u = num2/den2;
+		if(t >= 0 && t <= 1 && u >= 0 && u <= 1){
+			let x = (x1 + t*(x2-x1));
+			let y = (y1 + t*(y2-y1));
+			return [x,y];
+		}else{
+			return [];
+		}
+	}
+
+	draw(){
+		if(this.seen == true || getSelectedFoW.value == "fowFull"){
+			drawLin(ctxLG, this.start.x, this.start.y, this.end.x, this.end.y, this.c, this.width);
+			drawCirc(ctxLG, this.start.x, this.start.y, 3, "black");
+			drawCirc(ctxLG, this.end.x, this.end.y, 3, "black");
+		}
+	}
+}
+
+class User{
+	constructor(x, y, numR){
+		this.x = x;
+		this.y = y;
+		this.facing = new Vector(1, 0);
+		this.speed = 25;
+		this.size = 10;
+		this.rayNum = numR;
+		this.rays = [];
+		this.makeRays(numR);
+		this.lookVs = [];
+		this.fovCone;
+	}
+
+	turn(angle){
+		this.facing.rotateBy(angle);
+	}
+
+	draw(){
+		let dirLen = 50;
+		// this.drawRays();
+		this.drawLooks();
+		drawLin(ctxLG, this.x, this.y, this.x + this.facing.x*dirLen, this.y + this.facing.y*dirLen, "red", 5);
+		drawCirc(ctxLG, this.x, this.y, this.size, "black");
+
+	}
+
+	move(){
+		this.x = this.x + this.facing.x * this.speed;
+		this.y = this.y + this.facing.y * this.speed;
+	}
+
+	makeRay(angle, rayLen){
+		let facV = this.facing.copy();
+		facV.rotateBy(angle);
+		let p1 = new Vector(this.x + facV.x*this.size, this.y + facV.y*this.size);
+		let p2 = new Vector(this.x + facV.x*rayLen, this.y + facV.y*rayLen);
+		return new Border(p1, p2, 3, "yellow", true);
+	}
+
+	makeRays(numR){
+		this.rayNum = numR;
+		this.rays = new Array(numR);
+		const fovPerc = fovSlider.value/10;
+		this.fovCone = (Math.PI)*fovPerc;
+		const angleIncrement = this.fovCone/((this.rays.length-1));
+		const halfRays = Math.floor(numR/2);
+		for(let i = 0; i < halfRays; i++){
+			let tAngle = angleIncrement*i;
+			this.rays[i] = this.makeRay(tAngle, 1000);
+			this.rays[halfRays+i] = this.makeRay(-tAngle, 1000);
+		}
+	}
+
+	drawRays(){
+		for(let i = 0; i < this.rays.length; i++){
+			this.rays[i].draw();
+		}
+	}
+
+	drawLooks(){
+		for(let i = 0; i < this.lookVs.length; i++){
+			let tempV = this.lookVs[i];
+			if(getSelectedFoW.value == "fowBP"){
+				drawCirc(ctxLG, this.x + tempV.x, this.y + tempV.y, 1, "black");
+			}else{
+				drawLin(ctxLG, this.x, this.y, this.x + tempV.x, this.y + tempV.y, "yellow", 1);
+			}
+		}
+	}
+
+	checkIntersections(){
+		this.lookVs = [];
+		for(let i = 0; i < bords.length; i++){
+			bords[i].seen = !getSelectedFoW.value == "fowSB";
+		}
+		for(let i = 0; i < this.rays.length; i++){
+			let intersectingPoints = [];
+			for(let j = 0; j < bords.length; j++){
+				let cords = bords[j].intersects(this.rays[i].start, this.rays[i].end);
+				if(cords.length > 0){
+					intersectingPoints.push([cords, j]);
+				}
+			}
+			let closestIndex = -1;
+			let closestDist = 10000;
+			let bordIndex = -1;
+			for(let j = 0; j < intersectingPoints.length; j++){
+				let tempV = new Vector(this.x - intersectingPoints[j][0][0], this.y - intersectingPoints[j][0][1]);
+				if(tempV.length < closestDist){
+					closestIndex = j;
+					closestDist = tempV.length;
+					bordIndex = intersectingPoints[j][1];
+				}
+			}
+
+			if(intersectingPoints.length > 0){
+				let newV = new Vector(intersectingPoints[closestIndex][0][0] - this.x, intersectingPoints[closestIndex][0][1] - this.y);
+				bords[bordIndex].seen = true;
+				this.lookVs.push(newV);
+			}
+		}
+		
+	}
+}
+
+let gameUser;
+let gameRunApp;
+document.addEventListener('keydown', keyPressEvent);
+document.addEventListener('keyup', keyPressEvent);
+
+let fovSlider = document.getElementById("fov");
+let bords;
+
+function initGame(){
+	gameUser = new User(gameLWidth/2, gameLHeight/2, 150);
+	bords = Array(10);
+	makeBorders();
+	gameRunApp = setInterval(updateGame, 50);
+}
+
+var map = {}; // You could also use an array
+function keyPressEvent(e){
+	if(e.type == "keydown"){
+		map[e.key] = true;
+	}else{
+		map[e.key] = false;
+	}
+	let turnFactor = .2;
+    /* insert conditional here */
+	if(map["a"] || map["ArrowLeft"]){//left
+		gameUser.turn(-turnFactor);
+		gameUser.makeRays(gameUser.rayNum);
+	}
+	if(map["d"] || map["ArrowRight"]){//right
+		gameUser.turn(turnFactor);
+		gameUser.makeRays(gameUser.rayNum);
+	}
+	if(map["w"] || map["ArrowUp"]){//up
+		gameUser.move();
+		gameUser.makeRays(gameUser.rayNum);
+	}
+	if(map[" "]){//space
+
+	}
+}
+
+function drawRenderRects(){
+	for(let i = 0; i < gameUser.lookVs.length; i++){
+		let curLookV = gameUser.lookVs[i];
+		let angleBetween = Math.atan2(curLookV.y*gameUser.facing.x - curLookV.x*gameUser.facing.y, gameUser.facing.x * curLookV.x + gameUser.facing.y * curLookV.y);
+		//angleBetween from -fov -> fov
+		let angleRange = gameUser.fovCone/2; // max +- angleBetween can be
+		let numRange = ((angleBetween/angleRange) + 1)/2.;
+		let x = numRange*gameRWidth;
+		let w = gameRWidth/gameUser.rayNum;
+		let h = Math.min(30*gameRHeight/curLookV.length, gameRHeight);
+		let hDif = gameRHeight - h;
+		let rectColor = [0, 0, 250];
+		let tempC = rgbToHSV(rectColor);
+		let brightPercent = h/gameRHeight;
+		let brightOffset = 1-brightPercent;
+		brightPercent = brightPercent + brightOffset/3;
+
+		tempC = [tempC[0], tempC[1], tempC[2]*brightPercent];
+		let finalC = hsvToRGB(tempC);
+		let colorString = "rgb(" + finalC[0] + ", " + finalC[1] + ", " + finalC[2] + ")";
+		drawFRect(ctxRG, x, hDif/2, w, h, colorString);
+	}
+}
+
+function makeBorders(){
+	for(let i = 0; i < bords.length; i++){
+		let star = new Vector(Math.random()*gameLWidth, Math.random()*gameLHeight);
+		let en = new Vector(Math.random()*gameLWidth, Math.random()*gameLHeight);
+		bords[i] = new Border(star, en, 5, "black", getSelectedFoW.value == "fowSB");
+	}
+}
+
+function drawBorders(){
+	for(let i = 0; i < bords.length; i++){
+		bords[i].draw();
+	}
+}
+
+function updateGame(){
+	clearGraph(ctxLG, gameLCanvas);
+	clearGraph(ctxRG, gameRCanvas);
+	if(getSelectedFoW.value == "fowFull" || getSelectedFoW.value == "fowSB"){
+		drawBorders();
+	}
+	updateFow();
+	gameUser.checkIntersections();
+	gameUser.draw();
+	drawRenderRects();
+}
+
+function hideGame(){
+	clearInterval(gameRunApp);
+	gameRunApp = null;
+	gameUser = null;
+	bords = null;
+}
+
+function updateFow(){
+	getSelectedFoW = document.querySelector('input[name="showFow"]:checked');
+}
+
+function rgbToHSV(rgb){
+	let r = rgb[0];
+	let g = rgb[1];
+	let b = rgb[2];
+
+	let rP = r/255;
+	let gP = g/255;
+	let bP = b/255;
+	let cMax = Math.max(rP, gP, bP);
+	let cMin = Math.min(rP, gP, bP);
+	let delta = cMax - cMin;
+	let h;
+	if(delta == 0){
+		h = 0;
+	}else if(cMax == rP){
+		h = 60 * (((gP-bP)/delta)%6);
+	}else if(cMax == gP){
+		h = 60 * (((bP-rP)/delta)+2);
+	}else if(cMax == bP){
+		h = 60 * (((rP-gP)/delta)+4);
+	}
+	let s;
+	if(cMax == 0){
+		s = 0;
+	}else{
+		s = delta/cMax;
+	}
+	let v = cMax;
+	return [h, s, v];
+}
+
+function hsvToRGB(hsv){
+	let h = hsv[0];
+	let s = hsv[1];
+	let v = hsv[2];
+
+	let c = v*s;
+	let x = c * (1 - Math.abs(((h/60)%2)-1));
+	let m = v - c;
+
+	let rP;
+	let gP;
+	let bP;
+	if(0 <= h && h < 60){
+		rP = c;
+		gP = x;
+		bP = 0;
+	}else if(60 <= h && h < 120){
+		rP = x;
+		gP = c;
+		bP = 0;
+	}else if(120 <= h && h < 180){
+		rP = 0;
+		gP = c;
+		bP = x;
+	}else if(180 <= h && h < 240){
+		rP = 0;
+		gP = x;
+		bP = c;
+	}else if(240 <= h && h < 300){
+		rP = x;
+		gP = 0;
+		bP = c;
+	}else if(300 <= h && h < 360){
+		rP = c;
+		gP = 0;
+		bP = x;
+	}
+	// ((R'+m)×255, (G'+m)×255, (B'+m)×255)
+	let r = (rP + m)*255;
+	let g = (gP + m)*255;
+	let b = (bP + m)*255;
+	return [r, g, b];
+}
+
+let getSelectedFoW = document.querySelector('input[name="showFow"]:checked');
 
 getScores();
 getRequests();

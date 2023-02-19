@@ -234,8 +234,6 @@ td {
 #myCanvas{
     display: block;
     border: 2px solid #000000;
-    /* width: 80%; */
-    /* height: 80%; */
 }
 
 #wormCanvas{
@@ -246,6 +244,16 @@ td {
 #procCanvas{
     display: block;
     border: 2px solid #000000;
+}
+
+#gameLCanvas{
+    display: inline-block;
+    border: 2px solid #69d4ec;
+}
+
+#gameRCanvas{
+    display: inline-block;
+    border: 2px solid #c771df;
 }
 
 .requestBox {

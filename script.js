@@ -1778,11 +1778,14 @@ class Appendage {
 
 	/**
 	 * updates and draws appendage by calling collision trail and draw
+	 * @param {boolean} draw - whether or not appendage is drawn
 	 */
-	update() {
+	update(draw = true) {
 		this.collision();
 		this.trail();
-		this.draw();
+		if(draw){
+			this.draw();
+		}
 	}
 }
 
@@ -1800,15 +1803,21 @@ class Fleet {
 	constructor(numAgents, numSegs, maxW, maxH, ct, canv, sp) {
 		this.ct = ct;
 		this.canv = canv;
+		
+		/** @type {Array<Appendage>}*/
 		this.Apps = [];
+		
+		/**@type {Quad} */
+		this.storage = new Quad("root", null, this.Apps, maxW, maxH, this.ct);
+		
 		this.maxWidth = maxW;
 		this.maxHeight = maxH;
 		this.speed = sp;
+		
 		for (let i = 0; i < numAgents; i++) {
 			let tempCol = [Math.floor(Math.random()*255), Math.floor(Math.random()*255), Math.floor(Math.random()*255)];
 			this.Apps.push(new Appendage(numSegs, maxW, maxH, this.ct, this.speed, tempCol));
 		}
-		this.storage = new Quad("root", null, this.Apps, maxW, maxH, this.ct);
 	}
 
 	/**
@@ -1929,13 +1938,14 @@ class Fleet {
 
 	/**
 	 * updates Fleet by updating quadTree, then flocking the appendages, then moving the appendages
+	 * @param {boolean} [draw] - whether or not the appendages are drawn
 	 */
-	update() {
+	update(draw = true) {
 		this.updateQuad();
 		this.flock();
 		for (let i = 0; i < this.Apps.length; i++) {
 			let a = this.Apps[i];
-			a.update();
+			a.update(draw);
 		}
 	}
 }
@@ -2883,15 +2893,11 @@ function convSplineToString(s){
 let colorMap = makeColorSpline([new Point(230, 0, 0), new Point(100, 240, 30), new Point(50, 50, 230), new Point(20, 20, 70)], 36);
 let colorSMap = convSplineToString(colorMap);
 
-/**
- * @type {HTMLCanvasElement}
- */
+/**@type {HTMLCanvasElement}*/
 let gameLeftCanvas = document.getElementById("gameLCanvas");
 let gameLeftCanvasContext = gameLCanvas.getContext("2d");
 
-/**
- * @type {HTMLCanvasElement}
- */
+/**@type {HTMLCanvasElement}*/
 let gameRightCanvas = document.getElementById("gameRCanvas");
 let gameRightCanvasContext = gameRCanvas.getContext("2d");
 
@@ -2966,25 +2972,25 @@ class User{
 	 * @param {number} numR - number of rays
 	 */
 	constructor(x, y, numR){
-		/**
-		 * @type {number}
-		 */
+		/**@type {number}*/
 		this.x = x;
-		/**
-		 * @type {number}
-		 */
+		/**@type {number}*/
 		this.y = y;
-		/**
-		 * @type {Vector}
-		 */
+		/**@type {Vector}*/
 		this.facing = new Vector(1, 0);
 		this.speed = 25;
 		this.size = 10;
 		this.rayNum = numR;
 		this.rays = [];
 		this.makeRays(numR);
-		this.lookVs = [];//rename to something better
-		this.lookCs = [];//rename
+		/**
+		 * array of vectors from user to objects
+		 * @type {Array<Vector>} */
+		this.lookVs = [];
+		/**
+		 * array of colors for borders to draw
+		 * @type {Array<Array>} */
+		this.objectColors = [];
 		this.fovCone;
 	}
 
@@ -3087,19 +3093,13 @@ class Game{
 	 * @param {*} ctR - right canvas context
 	 */
 	constructor(canvL, ctL, canvR, ctR){
-		/**
-		 * @type {User}
-		 */
-		this.gameUser = null;
-		/**
-		 * @type {Array<Border>}
-		*/
+		/**@type {User}*/
+		this.user = null;
+		/**@type {Array<Border>}*/
 		this.bords = null;
-		/**
-		 * @type {Fleet}
-		*/
-		this.gameFleet = null;
-		this.gameRunApp = null;
+		/**@type {Fleet}*/
+		this.fleet = null;
+		this.mainLoop = null;
 		
 		this.ctxL = ctL;
 		this.canvasL = canvL;
@@ -3120,25 +3120,25 @@ class Game{
 	initGame(){
 		document.addEventListener('keydown', this.keyPressEvent.bind(this));
 		document.addEventListener('keyup', this.keyPressEvent.bind(this));
-		this.gameUser = new User(this.canvasLWidth/2, this.canvasLHeight/2, 150);
+		this.user = new User(this.canvasLWidth/2, this.canvasLHeight/2, 150);
 		this.bords = [];
 		this.makeBorders();
-		this.gameFleet = new Fleet(30, 3, this.canvasLWidth, this.canvasLHeight, this.ctxL, this.canvasL, 5);
-		this.gameRunApp = setInterval(this.updateGame.bind(this), 50);//idk?
+		this.fleet = new Fleet(30, 3, this.canvasLWidth, this.canvasLHeight, this.ctxL, this.canvasL, 5);
+		this.mainLoop = setInterval(this.updateGame.bind(this), 50);//idk?
 	}
 
 	/**
 	 * checks intersections between rays and all objects on screen
 	 */
 	checkIntersections(){
-		this.gameUser.lookVs = [];
-		this.gameUser.lookCs
+		this.user.lookVs = [];
+		this.user.objectColors = [];
 		for(let i = 0; i < this.bords.length; i++){
 			this.bords[i].seen = !getSelectedFoW.value == "fowSB";
 		}
 		//for every ray
-		for(let i = 0; i < this.gameUser.rays.length; i++){
-			let tempRay = this.gameUser.rays[i];
+		for(let i = 0; i < this.user.rays.length; i++){
+			let tempRay = this.user.rays[i];
 			let intersectingPoints = [];
 			// let intersectingObjects = [];
 			//for every wall
@@ -3150,8 +3150,8 @@ class Game{
 			// 	}
 			// }
 			//for every worm
-			for(let j = 0; j < this.gameFleet.storage.elements.length; j++){
-				let tempApp = this.gameFleet.storage.elements[j];
+			for(let j = 0; j < this.fleet.storage.elements.length; j++){
+				let tempApp = this.fleet.storage.elements[j];
 				//for every worm segment
 				for(let k = 0; k < tempApp.segments.length; k++){
 					let tempSeg = tempApp.segments[k];
@@ -3183,17 +3183,13 @@ class Game{
 				}
 			}
 			if(intersectingPoints.length > 0){
-				// console.log(intersectingPoints);
-				// console.log(closestIndex);
-				// console.log(intersectingPoints[closestIndex]);
-				// console.log(intersectingPoints[closestIndex][0]);
 				let tempCords = intersectingPoints[closestIndex][0];
-				let newV = new Vector(tempCords[0] - this.gameUser.x, tempCords[1] - this.gameUser.y);
+				let newV = new Vector(tempCords[0] - this.user.x, tempCords[1] - this.user.y);
 				if(seenApp == false && this.bords.length > 0){
 					this.bords[bordIndex].seen = true;
 				}
-				this.gameUser.lookVs.push(newV);
-				this.gameUser.lookCs.push(intersectingPoints[closestIndex][3]);
+				this.user.lookVs.push(newV);
+				this.user.objectColors.push(intersectingPoints[closestIndex][3]);
 			}
 
 			// for(let j = 0; j < intersectingObjects.length; j++){
@@ -3222,13 +3218,13 @@ class Game{
 	updateGame(){
 		clearGraph(this.ctxL, this.canvasL);
 		clearGraph(this.ctxR, this.canvasR);
-		this.gameFleet.update();
+		this.fleet.update(false);
 		if(getSelectedFoW.value == "fowFull" || getSelectedFoW.value == "fowSB"){
 			this.drawBorders();
 		}
 		this.updateFow();
 		this.checkIntersections();
-		this.gameUser.draw(this.ctxL);
+		this.user.draw(this.ctxL);
 		this.drawRenderRects();
 	}
 
@@ -3236,29 +3232,29 @@ class Game{
 	 * hides variables in game tab
 	 */
 	hideGame(){
-		clearInterval(this.gameRunApp);
-		this.gameRunApp = null;
-		this.gameUser = null;
+		clearInterval(this.mainLoop);
+		this.mainLoop = null;
+		this.user = null;
 		this.bords = null;
-		this.gameFleet = null;
+		this.fleet = null;
 	}
 
 	/**
 	 * draws rectangles on right game canvas corresponding to object hit on left game screen
 	 */	
 	drawRenderRects(){
-		for(let i = 0; i < this.gameUser.lookVs.length; i++){
-			let curLookV = this.gameUser.lookVs[i];
-			let angleBetween = Math.atan2(curLookV.y*this.gameUser.facing.x - curLookV.x*this.gameUser.facing.y, this.gameUser.facing.x * curLookV.x + this.gameUser.facing.y * curLookV.y);
+		for(let i = 0; i < this.user.lookVs.length; i++){
+			let curLookV = this.user.lookVs[i];
+			let angleBetween = Math.atan2(curLookV.y*this.user.facing.x - curLookV.x*this.user.facing.y, this.user.facing.x * curLookV.x + this.user.facing.y * curLookV.y);
 			//angleBetween from -fov -> fov
-			let angleRange = this.gameUser.fovCone/2; // max +- angleBetween can be
+			let angleRange = this.user.fovCone/2; // max +- angleBetween can be
 			let numRange = ((angleBetween/angleRange) + 1)/2.;
 			let x = numRange*this.canvasRWidth;
-			let w = this.canvasRWidth/this.gameUser.rayNum;
+			let w = this.canvasRWidth/this.user.rayNum;
 			let h = Math.min(30*this.canvasRHeight/curLookV.length, this.canvasRHeight);
 			let hDif = this.canvasRHeight - h;
 	
-			let rectColor = this.gameUser.lookCs[i];
+			let rectColor = this.user.objectColors[i];
 			let tempC = rgbToHSV(rectColor);
 			let brightPercent = h/this.canvasRHeight;
 			let brightOffset = 1-brightPercent;
@@ -3311,16 +3307,16 @@ class Game{
 		}
 		
 		if(this.map["a"] || this.map["ArrowLeft"]){//left
-			this.gameUser.turn(-turnFactor);
-			this.gameUser.makeRays();
+			this.user.turn(-turnFactor);
+			this.user.makeRays();
 		}
 		if(this.map["d"] || this.map["ArrowRight"]){//right
-			this.gameUser.turn(turnFactor);
-			this.gameUser.makeRays();
+			this.user.turn(turnFactor);
+			this.user.makeRays();
 		}
 		if(this.map["w"] || this.map["ArrowUp"]){//up
-			this.gameUser.move();
-			this.gameUser.makeRays();
+			this.user.move();
+			this.user.makeRays();
 		}
 		if(this.map[" "]){//space
 	
@@ -3413,9 +3409,7 @@ function hsvToRGB(hsv){
 	return [r, g, b];
 }
 
-/**
- * @type {Game}
- */
+/**@type {Game}*/
 let game = new Game(gameLeftCanvas, gameLeftCanvasContext, 
 	gameRightCanvas, gameRightCanvasContext);
 

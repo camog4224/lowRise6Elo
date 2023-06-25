@@ -6,36 +6,54 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="flat-remix-css-master/css/flat-remix.css">
+    <link rel="stylesheet" href="flat-remix-css-master/css/flat-remix.min.css">
     <title>Low Rise 6 Elo</title>
 </head>
 <body>
-    <div id = "userDisplay"></div>
-    <div id = "navBar">
-        <div id = "main" class = "navButton">Main</div>
-        <div id = "visual" class = "navButton">Visuals</div>
-        <div id = "movie" class = "navButton">Movies</div>
-        <div id = "worms" class = "navButton">Worms</div>
-        <div id = "proc" class = "navButton">Proc</div>
-        <div id = "game" class = "navButton">Game</div>
+    <div style = "display: block; overflow: auto;">
+        <div id = "navBar" class = "paper">
+            <div id = "main" class = "with-shadow navButton">Main</div>
+            <div id = "visual" class = "with-shadow navButton">Visuals</div>
+            <div id = "movie" class = "with-shadow navButton">Movies</div>
+            <div id = "worms" class = "with-shadow navButton">Worms</div>
+            <div id = "proc" class = "with-shadow navButton">Proc</div>
+            <div id = "game" class = "with-shadow navButton">Game</div>
+        </div>
+        <div id = "userDisplay" class = "paper">
+            <div id = "userDisplayText"></div>
+            <input id = "signSend" type="submit" value="Sign In" class = "blue-button">
+            <input id = "outSend" type="submit" value="Sign Out" class = "red-button">
+        </div>
     </div>
-
+    
     <div id = "movieContent">
         <br>
-        <label for="moveInput">Input Movie:</label><br>
-        <input type="text" id="movieInput" name="movieInput"><br>
-        <input id = "movieSend" type="submit" value="Submit Movie"><br><br>
-        <div id = "moviesDisplay"></div>
+        <div style = "width: 225px;"class = "paper">
+            <label for="moveInput">Add New Movie:</label><br>
+            <input type="text" id="movieInput" name="movieInput" placeholder="Movie Title"><br>
+            <input id = "movieSend" type="submit" value="Submit Movie" class = "green-button">
+        </div>
+        <div class = "paper">
+            <h2>Vote for a Movie to Watch after Spring Break with Refreshments</h2>
+        </div>
+        <div class = "paper">
+            <div id = "moviesDisplay"></div>
+        </div>
     </div>
 
     <div id = "visualContent">
-        <div>Person : </div>
-        <select id = "d1"></select>
-        <input id = "timeSend" type="submit" value="Show Games">
-        <input id = "graphSend" type="submit" value="Show Graph">
-        <input id = "clearSend" type="submit" value="Clear Graph">
-        <canvas id="myCanvas" width="400" height="400"></canvas>
-        <div id = "gamesDisplay">
-            <table id = "gamesTable"></table>
+        <div style = "height: 70px">
+            <select style = "float: left;" id = "d1"></select>
+            <input style = "float: left;" id = "graphSend" type="submit" value="Show Graph" class = "green-button">
+            <input style = "float: left;" id = "clearSend" type="submit" value="Clear Graph" class = "red-button">
+            <input style = "float: right;"id = "timeSend" type="submit" value="Show Games" class = "green-button">
+        </div>
+        <div>
+            <canvas id="myCanvas" width="400" height="400"></canvas>
+            <div id = "gamesDisplay" class = "paper">
+                <table id = "gamesTable"></table>
+            </div>
         </div>
     </div>
 
@@ -45,38 +63,45 @@
         <input type="range" min="1" max="50" value="50" id="procCol" name = "procCol">
         <label for="procCol" id = "procColLabel">Column Resolution</label><br>
         
-        <input type="range" min="1" max="50" value="25" id="procRow" name = "procRow">
+        <input type="range" min="1" max="50" value="20" id="procRow" name = "procRow">
         <label for="procRow" id = "procRowLabel">Row Resolution</label><br>
 
-        <div id = "procReset">Reset</div>
+        <input id = "procReset" type="submit" value="Reset" class = "red-button">
+        <label class="onoffswitch">
+            <input id = "procPause" type="checkbox" name="my-switch">
+            <span data-on="play" data-off="pause"> <span></span> </span>
+        </label>
+        <!-- <input id = "procPause" type="submit" value="Pause" class = "blue-button"> -->
     </div>
 
     <div id = "wormContent">
         <canvas id="wormCanvas" width="1200" height="700"></canvas>
         
-        <input type="checkbox" id = "randomSpecs" name = "randomSpecs">
-        <label for="randomSpecs">Continous Randomness</label><br>
-
-        <input type="checkbox" id = "qTree" name = "qTree">
-        <label for="qTree">Show Tree</label><br>
-        
-        <input type="checkbox" id = "rangeCheck" name = "range">
-        <label for="range">Show Perception</label>
-
-        <input type="range" min="1" max="50" value="20" id="rangeRange" name = "perc">
-        <label for="perc" id = "percLabel">Perception</label><br>
-        
-        <input type="range" min="0" max="50" value="50" id="align" name = "align">
-        <label for="align" id = "alignLabel">Align</label><br>
-        
-        <input type="range" min="0" max="50" value="9" id="seperate">
-        <label for="seperate" id = "sepLabel">Seperation</label><br>
-        
-        <input type="range" min="0" max="50" value="3" id="cohes">
-        <label for="cohes" id = "cohesLabel">Cohesion</label><br>
-
-        <input type="range" min="1" max="50" value="40" id="accel">
-        <label for="accel" id = "accelLabel">Acceleration</label><br>
+        <div style = "width: 350px;" class = "paper">
+            <input type="checkbox" id = "randomSpecs" name = "randomSpecs">
+            <label for="randomSpecs">Continous Randomness</label><br>
+    
+            <input type="checkbox" id = "qTree" name = "qTree">
+            <label for="qTree">Show Tree</label><br>
+            
+            <input type="checkbox" id = "rangeCheck" name = "range">
+            <label for="range">Show Perception</label>
+    
+            <input type="range" min="1" max="50" value="20" id="rangeRange" name = "perc">
+            <label for="perc" id = "percLabel">Perception</label><br>
+            
+            <input type="range" min="0" max="50" value="10" id="align" name = "align">
+            <label for="align" id = "alignLabel">Align</label><br>
+            
+            <input type="range" min="0" max="50" value="50" id="seperate">
+            <label for="seperate" id = "sepLabel">Seperation</label><br>
+            
+            <input type="range" min="0" max="50" value="20" id="cohes">
+            <label for="cohes" id = "cohesLabel">Cohesion</label><br>
+    
+            <input type="range" min="1" max="50" value="20" id="accel">
+            <label for="accel" id = "accelLabel">Acceleration</label><br>
+        </div>
     </div>
 
     <div id = "gameContent">
@@ -92,59 +117,54 @@
         <input type="radio" id="fowSB" name="showFow" value="fowSB">
         <label for="fowSB">Seen Borders</label><br>
         
-        <!-- <input type="radio" id="fowBS" name="showFow" value="fowBS">
-        <label for="fowBS">Border Segments</label> -->
-        
         <input type="radio" id="fowBP" name="showFow" value="fowBP" checked>
         <label for="fowBP">Border Parts</label>
-        
-        <!-- <input type="checkbox" id = "fogOfWar" name = "fogOfWar">
-        <label for="fogOfWar">Fog Of War</label><br> -->
 
     </div>
 
     <div id = "mainContent">
 
-        <input id = "signSend" type="submit" value="Sign In">
-        <input id = "outSend" type="submit" value="Sign Out">
+        <!-- <input id = "signSend" type="submit" value="Sign In" class = "blue-button">
+        <input id = "outSend" type="submit" value="Sign Out" class = "red-button"> -->
         <div id = "middle">
-            <div id = "yellowMiddle">
-                <div class = "manipulations">
-                    <div>
+            <div style = "display: block; overflow: auto;" class = "paper">
+            <!-- <div id = "yellowMiddle" class = "paper"> -->
+                <div class = "paper manipulations">
+                    <div style = "display: inline-block;">
                         <div>Person A : </div>
                         <select id = "s1"></select>
                     </div>
-                    <br>
-                    <div>
+                    <div style = "display: inline-block;">
                         <div>Person B : </div>
                         <select id = "s2"></select>
                     </div>
-                    <div>Winner Was : </div>
-
-                    <input type="radio" id="saWinner" name="Rwinner" value="aWinner" checked>
-                    <label for="aWinner">A</label><br>
-                    <input type="radio" id="sbWinner" name="Rwinner" value="bWinner">
-                    <label for="bWinner">B</label><br>
+                    <div>
+                        <div>Winner Was : </div>
+                        <input type="radio" id="saWinner" name="Rwinner" value="aWinner" checked>
+                        <label for="aWinner">A</label>
+                        <input type="radio" id="sbWinner" name="Rwinner" value="bWinner">
+                        <label for="bWinner">B</label><br>
+                    </div>
                     
-                    <input id = "subSend" type="submit" value="Submit">
+                    <input id = "subSend" type="submit" value="Submit" class = "green-button">
                 </div>
-                <br>
-                <div class = "manipulations">
-                    <label for="newPlayer">New Person:</label><br>
-                    <input type="text" id="newPlayer" name="newPlayer"><br>
-                    <input id = "subNewP" type="submit" value="Submit">
+                
+                <div style = "display: inline-block;" class = "paper manipulations">
+                    <label for="newPlayer">Add New Person:</label><br>
+                    <input type="text" id="newPlayer" name="newPlayer" placeholder="Name"><br>
+                    <input id = "subNewP" type="submit" value="Submit" class = "green-button">
                 </div>
-                <br>
-                <div class = "manipulations">
+                
+                <div style = "display: inline-block;" class = "paper manipulations">
                     <label for="newPlayer">Add ID:</label><br>
                     <select id = "h1"></select>
-                    <input id = "subID" type="submit" value="Submit">
+                    <input id = "subID" type="submit" value="Submit" class = "green-button">
                 </div>
                 <div id = "displayInfo"></div>
             </div>
             
         </div>
-        <div id = "scores">
+        <div id = "scores" class = "paper">
             <table id = "scoreTable"></table>
         </div>
         

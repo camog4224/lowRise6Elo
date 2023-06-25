@@ -1,22 +1,62 @@
 
+#userDisplay{
+    width: 250px;
+    float: right;
+}
+
 #navBar{
-    height: 31px;
+    /* height: 31px; */
+    height: fit-content;
+    width: 500px;
+    float: left;
+}
+
+input[type = "range"]{
+    -webkit-appearance: none;
+    width: 200px !important;
+    height: 8px !important;
+    border-style: none !important;
+    border-radius: 5px !important;
+    background: #5c616c !important;
+    outline: none !important;
+    opacity: 0.7 !important;
+    -webkit-transition: .2s !important;
+    transition: opacity .2s !important;
+}
+
+input[type = "range"]::-webkit-slider-thumb{
+    -webkit-appearance: none;
+    appearance: none;
+    width: 25px;
+    height: 25px;
+    border-radius: 50%; 
+    background: #19a187;
+    cursor: pointer;
+}
+
+input[type = "range"]::-moz-range-thumb{
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    background: #19a187;
+    cursor: pointer;
 }
 
 .movieBox{
-    background-color: rgb(223, 209, 107);
-    border: 2px solid #003B62;
+    /* background-color: rgb(223, 209, 107); */
+    /* border: 2px solid #003B62;
     padding: 10px;
     margin-bottom: 10px;
-    margin-right: 10px;
-    height: 125px;
-    width: 150px;
+    margin-right: 10px; */
+    height: 175px;
+    width: 200px;
     display: inline-block;
 }
 
 
 .movieTitle{
     font-size: 25px;
+    height: 100px;
 }
 
 .movieVote{
@@ -73,14 +113,14 @@
 
 .navButton{
     width: fit-content;
-    height: 15px;
+    /* height: 15px; */
     float: left;
     border: 2px solid #003B62;
     padding: 5px;
     margin-right: 10px;
 }
 
-#main{
+/* #main{
     background-color: rgb(223, 122, 64);
 }
 
@@ -102,7 +142,7 @@
 
 #proc{
     background-color: rgb(254, 250, 30);
-}
+} */
 
 #visualContent{
     display: none;
@@ -159,20 +199,22 @@
 
 .acceptButton{
     background-color: rgb(64, 255, 0);
-    height: 45px;
+    height: 35px;
     width: 45px;
     border: 1px solid #003B62;
     display: inline-block;
     margin:auto;
+    border-radius: 15px;
 }
 
 .rejectButton{
     background-color: rgb(255, 0, 0);
-    height: 45px;
+    height: 35px;
     width: 45px;
     border: 1px solid #003B62;
     display: inline-block;
     margin:auto;
+    border-radius: 15px;
 }
 
 .buttonGroup{
@@ -204,10 +246,10 @@
 }
 
 #scores {
-    background-color: rgb(144, 214, 238);
+    /* background-color: rgb(144, 214, 238); */
     position: relative;
     float: right;
-    border: 2px solid #003B62;
+    /* border: 2px solid #003B62; */
     padding-left: 10px;
 }
 
@@ -217,6 +259,10 @@
     float: right;
     border: 2px solid #003B62;
     padding: 10px;
+}
+
+.float-left{
+    float: left;
 }
 
 .winRow{
@@ -232,7 +278,7 @@ td {
 }
 
 #myCanvas{
-    display: block;
+    float: left;
     border: 2px solid #000000;
 }
 

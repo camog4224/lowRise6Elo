@@ -730,7 +730,7 @@ function initSpec(key) {
 	if (key == "wormContent") {
 		initWorms();
 	} else if (key == "procContent") {
-		initProc();
+		procBoard.initProc();
 	} else if (key == "movieContent") {
 		refreshMovies();
 	} else if (key == "gameContent") {
@@ -747,7 +747,7 @@ function hideAll(key) {
 		hideWorms();
 	}
 	if (key != "procContent") {
-		hideProc();
+		procBoard.hideProc();
 	}
 	if (key != "gameContent") {
 		if(game != null){
@@ -2165,10 +2165,9 @@ function hideWorms() {
 	wormFleet = null;
 }
 
+
 let procCanvas = document.getElementById("procCanvas");
 let ctxP = procCanvas.getContext("2d");
-const procWidth = procCanvas.width;
-const procHeight = procCanvas.height;
 
 let colSlider = document.getElementById("procCol");
 let colSliderLabel = document.getElementById("procColLabel");
@@ -2177,150 +2176,543 @@ let rowSlider = document.getElementById("procRow");
 let rowSliderLabel = document.getElementById("procRowLabel");
 
 let procReset = document.getElementById("procReset");
-procReset.addEventListener("click", initProc);
 
 let procPauseSwitch = document.getElementById("procPause");
-// procPauseButton.addEventListener("click", pauseProc);
 
-let conns1 = {
-	end: ["111", "111", "101", "111"],
-	floor: ["000", "000", "000", "000"],
-	hallway: ["111", "101", "111", "101"],
-	intersection: ["101", "101", "101", "101"],
-	tintersection: ["111", "101", "101", "101"],
-	wall: ["111", "111", "111", "111"],
-	entry: ["111", "000", "111", "101"],
-	diagonal: ["111", "000", "000", "111"],
-	corner: ["111", "101", "101", "111"]
-};
-
-let cells = [];
-let finished = false;
-let restart = false;
-let imgNames = Object.keys(conns1);
-let numImgs = imgNames.length;
-let imgs = new Array(numImgs);
-let imgsLocation = "imgs";
-let wormImg = new Image();
-wormImg.src = "imgs/worm1.png";
-let procRunApp = null;
-const imgSize = 100;
-let connectionArr;
-const numMakeCols = procWidth / imgSize;
-let procPaused = false;
-// const numMakeRows = procHeight / imgSize;
-
-let numCols = 10;
-let numRows = 5;
-
-let boxWidth = procWidth / numCols;
-let boxHeight = procHeight / numRows;
-const loadSpeed = 40;
-
-/**
- * refreshes procedural tab slider values
- */
-function refreshProcValues(){
-	numCols = colSlider.value;
-	numRows = rowSlider.value;
+class Board{
 	
-	colSliderLabel.innerHTML = "Column Resolution : " + numCols;
-	rowSliderLabel.innerHTML = "Row Resolution : " + numRows;
-	boxWidth = procWidth / numCols;
-	boxHeight = procHeight / numRows;
-}
+	constructor(canvas, context){
+		this.canvas = canvas;
+		this.context = context;
 
-/**
- * Initializes chain of initial procedural image manipulations
- */
-async function firstInitProc(){
-	loadBaseImages();
-	setTimeout(stagger1, 1000);
-}
+		this.canvasWidth = this.canvas.width;
+		this.canvasHeight = this.canvas.height;
 
-/**
- * staggered initialized procedural
- */
-async function stagger1(){
-	drawRotImages();
-	await loadRotImages();
-	clearGraph(ctxP, procCanvas);
-	drawIndexRotImages();
-	makeRotConns();
-}
+		procReset.addEventListener("click", this.initProc.bind(this));
 
-/**
- * Initializes proc tab
- */
-async function initProc() {
-	// await firstInitProc();
-	cells = [];
-	finished = false;
-	restart = false;
-	procRunApp = null;
-	procPaused = false;
-	// console.log(connectionArr);
-	// testHelpers();
-	refreshProcValues();
-	createMap(numCols, numRows, numImgs);
-	procRunApp = setInterval(updateMap, loadSpeed);
-}
+		this.cells = [];
+		this.finishedIterating = false;
+		this.restart = false;
+		this.mainLoop = null;
 
-function pauseProc(){
-	procPaused = !procPaused;
-}
+		this.imgsLocation = "imgs";
+		this.cellSideLength = 100;
+		
+		this.numCols = 10;
+		this.numRows = 5;
+		
+		this.numMakeCols = this.canvasWidth / this.cellSideLength;
 
-const cardinalDirs = ["up","right", "down", "left"]
+		this.cellWidth = this.canvasWidth / this.numCols;
+		this.cellHeight = this.canvasHeight / this.numRows;
+		
+		this.tickInterval = 20;
+		
+		this.cellTemplateConnections = {
+			end: ["111", "111", "101", "111"],
+			floor: ["000", "000", "000", "000"],
+			hallway: ["111", "101", "111", "101"],
+			intersection: ["101", "101", "101", "101"],
+			tintersection: ["111", "101", "101", "101"],
+			wall: ["111", "111", "111", "111"],
+			entry: ["111", "000", "111", "101"],
+			diagonal: ["111", "000", "000", "111"],
+			corner: ["111", "101", "101", "111"]
+		};
+		this.arrayTemplateConnections;
+		this.cardinalDirs = ["up","right", "down", "left"];
 
-function testHelpers(){
-	console.log("Test Beginning");
-	let neighborStates = [10];//first 4 rotations of end piece
-	let lookAtMain = 1;
-	let lookAtNeighbor = (lookAtMain + 2)%4
-	console.log("Neighbor states : ", neighborStates);
-	console.log("Looking At Main " + cardinalDirs[lookAtMain]);
-	let aSockets = getAllowedSockets(neighborStates, lookAtMain);
-	console.log("Actual Sockets : ", aSockets);
-	console.log("Break");
-	let currentStates = [0, 1, 2, 3];
-	console.log("Current Main States : ", currentStates);
-	console.log("Looking At Neighbor " + cardinalDirs[lookAtNeighbor]);
-	let lessStates = reducePossibleStates(currentStates, aSockets, lookAtNeighbor);
-	console.log("Actual New States : ", lessStates);
-	
-}
-
-/**
- * hides proc tab
- */
-function hideProc() {
-	clearInterval(procRunApp);
-	procRunApp = null;
-	cells = [];
-	procPaused = false;
-}
-
-/**
- * @param {number} w - number of columns
- * @param {number} h - number of rows
- * @param {number} s - number of states a cell can be
- */
-function createMap(w, h, s) {
-	let temp = new Array(w);
-	for (let i = 0; i < w; i++) {
-		let tempCol = new Array(h);
-		let numTempStates = s;
-		for (let j = 0; j < h; j++) {
-			let tempArr = [];
-			for (let k = 0; k < numTempStates; k++) {
-				tempArr.push(k);
-			}
-			let tempCell = new Cell(tempArr);
-			tempCol[j] = tempCell;
-		}
-		temp[i] = tempCol;
+		this.cellNames = Object.keys(this.cellTemplateConnections);
+		this.numCellTypes = this.cellNames.length;
+		this.cellImgs = new Array(this.numCellTypes);
 	}
-	cells = temp;
+
+	/**
+	 * refreshes procedural tab slider values
+	 */
+	refreshProcValues(){
+		this.numCols = colSlider.value;
+		this.numRows = rowSlider.value;
+		
+		// colSliderLabel.innerHTML = "Column Resolution : " + this.numCols;
+		// rowSliderLabel.innerHTML = "Row Resolution : " + this.numRows;
+		
+		this.cellWidth = this.canvasWidth / this.numCols;
+		this.cellHeight = this.canvasHeight / this.numRows;
+	}
+
+	/**
+	 * Initializes chain of initial procedural image manipulations
+	 */
+	async firstInitProc(){
+		this.loadBaseImages();
+		setTimeout(this.stagger1.bind(this), 1000);
+	}
+
+	/**
+	 * staggered initialized procedural
+	 */
+	async stagger1(){
+		this.drawRotImages();
+		await this.loadRotImages();
+		clearGraph(this.context, this.canvas);
+		this.drawIndexRotImages();
+		this.makeRotConns();
+	}
+
+	/**
+	 * Initializes proc tab
+	 */
+	async initProc() {
+		this.cells = [];
+		this.finishedIterating = false;
+		this.restart = false;
+		this.mainLoop = null;
+		
+		this.refreshProcValues();
+		this.createMap(this.numCols, this.numRows, this.numCellTypes);
+		this.mainLoop = setInterval(this.updateMap.bind(this), this.tickInterval);
+		// this.procRunApp = setInterval(updateMap, loadSpeed);
+	}
+
+	/**
+	 * returns the array of indexes of the cell with lowest entropy
+	 * @returns {Array<number>}
+	 */
+	findLowestEntropy() {
+		let smallestStates = 100;
+		let lastI = -1;
+		let lastJ = -1;
+		for (let i = 0; i < this.numCols; i++) {
+			for (let j = 0; j < this.numRows; j++) {
+				if (
+					this.cells[i][j].info.length < smallestStates &&
+					this.cells[i][j].propped == false
+				) {
+					smallestStates = this.cells[i][j].info.length;
+					lastI = i;
+					lastJ = j;
+				}
+			}
+		}
+		return [lastI, lastJ];
+	}
+
+	/**
+	 * returns array of sockets that fit with neighbor in direction dir
+	 * @param {Array<number>} neighborStates - states of neighbor cell
+	 * @param {number} dir - pointing from neighbor cell to origin cell
+	 * @returns {Array<string>}
+	 */
+	getAllowedSockets(neighborStates, dir) {
+		let allowedStates = [];
+		for (let i = 0; i < neighborStates.length; i++) {
+			let currentNeighborState = neighborStates[i];
+			// console.log(currentNeighborState);
+			// console.log(this.arrayTemplateConnections);
+			let currentNeighborTile = this.arrayTemplateConnections[currentNeighborState];
+			// console.log(currentNeighborTile);
+			let stringNeighborConnections = currentNeighborTile[dir].split("");
+			// console.log(stringNeighborConnections);
+			let rStringNeighborConnections = stringNeighborConnections.reverse();
+			// console.log(rStringNeighborConnections);
+			let side = rStringNeighborConnections.join("");
+			// console.log(side);
+			if (allowedStates.includes(side) == false) {
+				allowedStates.push(side);
+			}
+		}
+		return allowedStates;
+	}
+
+	/**
+	 * iterates proc board recursively
+	 */
+	iterateBoardR(){
+		let coords = this.findLowestEntropy();
+		if (coords[0] == -1 || coords[1] == -1) {
+			if (coords[0] == -1 && coords[1] == -1) {
+				this.finishedIterating = true;
+			}
+			return;
+		}
+		let pickedCell = this.cells[coords[0]][coords[1]];
+		
+		pickedCell.pick();
+		coords = this.findLowestEntropy();
+		if (coords[0] == -1 || coords[1] == -1) {
+			if (coords[0] == -1 && coords[1] == -1) {
+				this.finishedIterating = true;
+			}
+			return;
+		}
+		this.iterateCell(0, coords[0], coords[1]);//find propped cell next to this one to find dir
+	}
+
+	/**
+	 * recursively iterates cell at column x and row y and its neighboring cells
+	 * @param {number} dir - direction parent cell came from
+	 * @param {number} x - column of cell
+	 * @param {number} y - row of cell
+	 */
+	iterateCell(dir, x, y){
+		if(x < 0 || x >= this.numCols || y < 0|| y >= this.numRows){
+			return;
+		}
+		if(this.cells[x][y].propped == true || this.restart == true){
+			return;
+		}
+		let initialPossibleStates = this.cells[x][y].info;
+		let newPossibleStates = initialPossibleStates;
+		for (let k = 0; k < 4; k++) {
+			let xi;
+			let yi;
+			if (k < 2) {
+				xi = x - 1 + k * 2;
+				yi = y;
+			} else {
+				xi = x;
+				yi = y - 1 + (k - 2) * 2;
+			}
+			if (xi < 0 || xi >= this.numCols || yi < 0 || yi >= this.numRows) {
+				continue;
+			}
+			
+			let neighborCell = this.cells[xi][yi];
+			let neighborIndex; //in direction of neighbor from main cell
+			if (k == 0) {
+				neighborIndex = 3;
+			} else if (k == 1) {
+				neighborIndex = 1;
+			} else if (k == 2) {
+				neighborIndex = 0;
+			} else {
+				neighborIndex = 2;
+			}
+			let lookIndex = (neighborIndex + 2) % 4; // in direction of main cell from neighbor
+			let allowedSockets = this.getAllowedSockets(
+				neighborCell.info,
+				lookIndex
+			);
+			newPossibleStates = this.reducePossibleStates(
+				newPossibleStates,
+				allowedSockets,
+				neighborIndex
+			);
+		}
+		
+		if(newPossibleStates.length == 0){
+			this.restart = true;
+			return;
+		}
+		if(newPossibleStates.length == 1){
+			this.cells[x][y].propped = true;
+		}
+		if(compareArrays(initialPossibleStates, newPossibleStates) == true){//look into symmetrical states
+			//dont recurse
+			return;
+		}
+		this.cells[x][y].info = newPossibleStates;
+		if(this.restart != true){
+			this.iterateCell(2, x, y-1);
+		}
+		if(this.restart != true){
+			this.iterateCell(3, x+1, y);
+		}
+		if(this.restart != true){
+			this.iterateCell(0, x, y+1);
+		}
+		if(this.restart != true){
+			this.iterateCell(1, x-1, y);
+		}
+	}
+
+	/**
+	 * iterates proc board iteritively
+	 */
+	iterateBoard() {//probably mixed up xy ij row/column
+		
+		let coords = this.findLowestEntropy();
+		if (coords[0] == -1 || coords[1] == -1) {
+			if (coords[0] == -1 && coords[1] == -1) {
+				this.finishedIterating = true;
+			}
+			return;
+		}
+
+		let nextBoard = new Array(this.numCols);
+		for (let i = 0; i < this.numCols; i++) {
+			nextBoard[i] = new Array(this.numRows);
+		}
+
+		let pickedCell = this.cells[coords[0]][coords[1]];
+
+		pickedCell.pick();
+
+		for (let i = 0; i < this.numCols; i++) {
+			for (let j = 0; j < this.numRows; j++) {
+				let mainCell = this.cells[i][j];
+				if (mainCell.propped == true) {
+					nextBoard[i][j] = this.cells[i][j];
+				} else {
+					//look at neighbors
+					let finalStates = mainCell.info;
+					for (let k = 0; k < 4; k++) {
+						let x;
+						let y;
+						if (k < 2) {
+							x = i - 1 + k * 2;
+							y = j;
+						} else {
+							x = i;
+							y = j - 1 + (k - 2) * 2;
+						}
+						if (x < 0 || x >= this.numCols || y < 0 || y >= this.numRows) {
+							continue;
+						}
+						
+						let neighborCell = this.cells[x][y];
+						let neighborIndex; //in direction of neighbor
+						if (k == 0) {
+							neighborIndex = 3;
+						} else if (k == 1) {
+							neighborIndex = 1;
+						} else if (k == 2) {
+							neighborIndex = 0;
+						} else {
+							neighborIndex = 2;
+						}
+						let lookIndex = (neighborIndex + 2) % 4; // in direction of main cell
+						let allowedSockets = this.getAllowedSockets(
+							neighborCell.info,
+							lookIndex
+						);
+						finalStates = this.reducePossibleStates(
+							finalStates,
+							allowedSockets,
+							neighborIndex
+						);
+						if (finalStates.length < 1) {
+							this.restart = true;
+							break;
+						}
+					}
+					nextBoard[i][j] = new Cell(finalStates);
+				}
+			}
+		}
+		this.cells = nextBoard;
+	}
+
+	/**
+	 * returns array of states currentStates has to be reduced to by which side adjSide givenSockets connects with
+	 * @param {Array<number>} currentStates - initial states of a cell
+	 * @param {Array<string>} givenSockets - tile containing all 4 sets of sockets to reduce currentStates with
+	 * @param {number} adjSide - index with with choose which set of sockets in givenSockets to reduce currentStates with
+	 * @returns {Array<number>}
+	 */
+	reducePossibleStates(currentStates, givenSockets, adjSide) {
+		let newStates = [];
+		for (let i = 0; i < currentStates.length; i++) {
+			// console.log(adjSide);
+			let curState = currentStates[i];
+			// console.log(curState);//1
+			let curConn = this.arrayTemplateConnections[curState];//does this makes sense
+			// console.log(curConn);//['111', '111', '111', '101']
+			let singleSide = curConn[adjSide];
+			// console.log(singleSide);//"101"
+			if (givenSockets.includes(singleSide)) {
+				newStates.push(curState);
+			}
+		}
+		return newStates;
+	}
+
+	/**
+	 * draws the collapsed states of cells or heat map depending on how many possible states a cell has left
+	 */
+	drawMap() {
+		for (let i = 0; i < this.cells.length; i++) {
+			for (let j = 0; j < this.cells[i].length; j++) {
+				let x = i * this.cellWidth;
+				let y = j * this.cellHeight;
+				if (this.cells[i][j].info.length == 1) {
+					this.context.drawImage(this.cellImgs[this.cells[i][j].info[0]], x, y, this.cellWidth, this.cellHeight);
+				} else {
+					// drawDetailedCell(cells[i][j], x, y, boxWidth, boxHeight);
+					drawFRect(this.context, x, y, this.cellWidth, this.cellHeight, colorSMap[this.cells[i][j].info.length-1]);
+				}
+			}
+		}
+	}
+
+	/**
+	 * draws all current states of curCell within the borders of width w and height h at x and y
+	 * @param {Cell} curCell - cell
+	 * @param {number} x - x value of topleft of cell
+	 * @param {number} y - y value of topleft of cell
+	 * @param {number} w - width of cell
+	 * @param {number} h - height of cell
+	 */
+	drawDetailedCell(curCell, x, y, w, h){
+		const innerW = w/6;
+		const innerH = h/6;
+		for(let i = 0; i < curCell.info.length; i++){
+			let stateNum = curCell.info[i];
+			let innerX = x + (stateNum%6)*innerW;
+			let innerY = y + Math.floor(stateNum/6)*innerH;
+			this.context.drawImage(this.cellImgs[curCell.info[i]], innerX, innerY, innerW, innerH);
+		}
+	}
+
+	/**
+	 * initializes template cell images into Image objects
+	 */
+	async loadBaseImages() {
+		for (let i = 0; i < this.numCellTypes; i++) {
+			let temp = new Image(this.cellSideLength, this.cellSideLength);
+			temp.src = "/" + this.imgsLocation + "/" + this.cellNames[i] + ".png";
+			this.cellImgs[i] = temp;
+		}
+	}
+
+	/**
+	 * draws template cell images to proc canvas
+	 */
+	drawBaseImages(){
+		for(let i = 0; i < this.numCellTypes; i++){
+			let x = (i % this.numMakeCols) * this.cellSideLength;
+			let y = Math.floor(i / this.numMakeCols) * this.cellSideLength;
+			this.context.drawImage(this.cellImgs[i], x, y, this.cellWidth, this.cellHeight);
+		}
+	}
+
+	/**
+	 * draws template cell images and their 3 other rotations in order to proc canvas
+	 */
+	async drawRotImages() {
+		for (let i = 0; i < this.numCellTypes * 4; i++) {
+			let x = (i % this.numMakeCols) * this.cellSideLength;
+			let y = Math.floor(i / this.numMakeCols) * this.cellSideLength;
+			let rotX = x + this.cellSideLength / 2;
+			let rotY = y + this.cellSideLength / 2;
+			let degs = ((i % 4) * Math.PI) / 2;
+			this.context.save();
+			this.context.translate(rotX, rotY);
+			this.context.rotate(degs);
+			this.context.drawImage(this.cellImgs[Math.floor(i / 4)], -this.cellSideLength / 2, -this.cellSideLength / 2);
+			this.context.restore();
+		}
+	}
+
+	/**
+	 * takes images drawn on proc canvas and stores them as ImageBitmaps to imgs array
+	 */
+	async loadRotImages() {
+		let newImgs = new Array(this.numCellTypes * 4);
+
+		for (let i = 0; i < this.numCellTypes * 4; i++) {
+			let x = (i % this.numMakeCols) * this.cellSideLength;
+			let y = Math.floor(i / this.numMakeCols) * this.cellSideLength;
+			newImgs[i] = await createImageBitmap(this.canvas, x, y, this.cellSideLength, this.cellSideLength);
+		}
+		this.cellImgs = newImgs;
+		this.numCellTypes = this.cellImgs.length;
+	}
+
+	/**
+	 * draws all cell images to proc canvas
+	 */
+	drawIndexRotImages() {
+		for (let i = 0; i < this.cellImgs.length; i++) {
+			let x = (i % this.numMakeCols) * 100;
+			let y = Math.floor(i / this.numMakeCols) * 100;
+			this.context.drawImage(this.cellImgs[i], x, y);
+		}
+	}
+
+	/**
+	 * generate sockets for each rotated version of template cell image
+	 */
+	makeRotConns() {
+		let tempConns = {};
+		let keys = Object.keys(this.cellTemplateConnections);
+		let tempArrConns = new Array(keys.length * 4);
+		for (let i = 0; i < keys.length; i++) {
+			for (let j = 0; j < 4; j++) {
+				let newKey = "" + keys[i] + "" + j;
+				let index = 4 - j;
+				let curSides = this.cellTemplateConnections[keys[i]];
+				let back = curSides.slice(index, 4);
+				let front = curSides.slice(0, index);
+				let newSides = back.concat(front);
+				tempConns[newKey] = newSides;
+				tempArrConns[i * 4 + j] = newSides;
+			}
+		}
+		this.cellTemplateConnections = tempConns;
+		this.arrayTemplateConnections = tempArrConns;
+	}
+
+	/**
+	 * @param {number} w - number of columns
+	 * @param {number} h - number of rows
+	 * @param {number} s - number of states a cell can be
+	 */
+	createMap(w, h, s) {
+		let temp = new Array(w);
+		for (let i = 0; i < w; i++) {
+			let tempCol = new Array(h);
+			let numTempStates = s;
+			for (let j = 0; j < h; j++) {
+				let tempArr = [];
+				for (let k = 0; k < numTempStates; k++) {
+					tempArr.push(k);
+				}
+				let tempCell = new Cell(tempArr);
+				tempCol[j] = tempCell;
+			}
+			temp[i] = tempCol;
+		}
+		this.cells = temp;
+	}
+
+	/**
+	 * updates proc board
+	 */
+	updateMap() {
+		if(procPauseSwitch.checked == true){
+			return;
+		}
+		if (this.finishedIterating == false) {
+			if (this.restart == true) {
+				this.restart = false;
+				this.refreshProcValues();
+				this.createMap(this.numCols, this.numRows, this.numCellTypes);
+			}
+			// clearGraph(ctxP, procCanvas);
+			colSliderLabel.innerHTML = "Column Resolution : " + colSlider.value;
+			rowSliderLabel.innerHTML = "Row Resolution : " + rowSlider.value;
+			//make iterative vs recursive a toggle button
+			this.iterateBoardR();
+			// this.iterateBoard();
+
+			this.drawMap();
+		} else {
+			// checkConnections();
+			// clearInterval(procRunApp);
+			// procRunApp = null;
+		}
+	}
+
+	/**
+	 * clears all board state
+	 */
+	hideProc() {
+		clearInterval(this.mainLoop);
+		this.mainLoop = null;
+		this.cells = [];
+	}
 }
 
 class Cell {
@@ -2352,78 +2744,7 @@ class Cell {
 	}
 }
 
-/**
- * returns the array of indexes of the cell with lowest entropy
- * @returns {Array<number>}
- */
-function findLowestEntropy() {
-	let smallestStates = 100;
-	let lastI = -1;
-	let lastJ = -1;
-	for (let i = 0; i < numCols; i++) {
-		for (let j = 0; j < numRows; j++) {
-			if (
-				cells[i][j].info.length < smallestStates &&
-				cells[i][j].propped == false
-			) {
-				smallestStates = cells[i][j].info.length;
-				lastI = i;
-				lastJ = j;
-			}
-		}
-	}
-	return [lastI, lastJ];
-}
-
-/**
- * returns array of sockets that fit with neighbor in direction dir
- * @param {Array<number>} neighborStates - states of neighbor cell
- * @param {number} dir - pointing from neighbor cell to origin cell
- * @returns {Array<string>}
- */
-function getAllowedSockets(neighborStates, dir) {
-	let allowedStates = [];
-	for (let i = 0; i < neighborStates.length; i++) {
-		let currentNeighborState = neighborStates[i];//1
-		// console.log(currentNeighborState);
-		let currentNeighborTile = connectionArr[currentNeighborState];//['111', '111', '101', '111']
-		// console.log(currentNeighborTile);
-		let stringNeighborConnections = currentNeighborTile[dir].split("");// ["0", "1", "0"]
-		// console.log(stringNeighborConnections);
-		let rStringNeighborConnections = stringNeighborConnections.reverse();
-		// console.log(rStringNeighborConnections);
-		let side = rStringNeighborConnections.join("");///"111"
-		// console.log(side);
-		if (allowedStates.includes(side) == false) {
-			allowedStates.push(side);
-		}
-	}
-	return allowedStates;
-}
-
-/**
- * iterates proc board recursively
- */
-function iterateBoardR(){
-	let coords = findLowestEntropy();
-	if (coords[0] == -1 || coords[1] == -1) {
-		if (coords[0] == -1 && coords[1] == -1) {
-			finished = true;
-		}
-		return;
-	}
-	let pickedCell = cells[coords[0]][coords[1]];
-	
-	pickedCell.pick();
-	coords = findLowestEntropy();
-	if (coords[0] == -1 || coords[1] == -1) {
-		if (coords[0] == -1 && coords[1] == -1) {
-			finished = true;
-		}
-		return;
-	}
-	iterateCell(0, coords[0], coords[1]);//find propped cell next to this one to find dir
-}
+let procBoard = new Board(procCanvas, ctxP);
 
 /**
  * returns whether array s1 and array s2 contain the same elements
@@ -2440,335 +2761,6 @@ function compareArrays(s1, s2){
 	return true;
 }
 
-/**
- * recursively iterates cell at column x and row y and its neighboring cells
- * @param {number} dir - direction parent cell came from
- * @param {number} x - column of cell
- * @param {number} y - row of cell
- */
-function iterateCell(dir, x, y){
-	if(x < 0 || x >= numCols || y < 0|| y >= numRows){
-		return;
-	}
-	if(cells[x][y].propped == true || restart == true){
-		return;
-	}
-	let initialPossibleStates = cells[x][y].info;
-	let newPossibleStates = initialPossibleStates;
-	for (let k = 0; k < 4; k++) {
-		let xi;
-		let yi;
-		if (k < 2) {
-			xi = x - 1 + k * 2;
-			yi = y;
-		} else {
-			xi = x;
-			yi = y - 1 + (k - 2) * 2;
-		}
-		if (xi < 0 || xi >= numCols || yi < 0 || yi >= numRows) {
-			continue;
-		}
-		
-		let neighborCell = cells[xi][yi];
-		let neighborIndex; //in direction of neighbor from main cell
-		if (k == 0) {
-			neighborIndex = 3;
-		} else if (k == 1) {
-			neighborIndex = 1;
-		} else if (k == 2) {
-			neighborIndex = 0;
-		} else {
-			neighborIndex = 2;
-		}
-		let lookIndex = (neighborIndex + 2) % 4; // in direction of main cell from neighbor
-		let allowedSockets = getAllowedSockets(
-			neighborCell.info,
-			lookIndex
-		);
-		newPossibleStates = reducePossibleStates(
-			newPossibleStates,
-			allowedSockets,
-			neighborIndex
-		);
-	}
-	
-	if(newPossibleStates.length == 0){
-		restart = true;
-		return;
-	}
-	if(newPossibleStates.length == 1){
-		cells[x][y].propped = true;
-	}
-	if(compareArrays(initialPossibleStates, newPossibleStates) == true){//look into symmetrical states
-		//dont recurse
-		return;
-	}
-	cells[x][y].info = newPossibleStates;
-	if(restart != true){
-		iterateCell(2, x, y-1);
-	}
-	if(restart != true){
-		iterateCell(3, x+1, y);
-	}
-	if(restart != true){
-		iterateCell(0, x, y+1);
-	}
-	if(restart != true){
-		iterateCell(1, x-1, y);
-	}
-}
-
-/**
- * iterates proc board iteritively
- */
-function iterateBoard() {//probably mixed up xy ij row/column
-	
-	let coords = findLowestEntropy();
-	if (coords[0] == -1 || coords[1] == -1) {
-		if (coords[0] == -1 && coords[1] == -1) {
-			finished = true;
-		}
-		return;
-	}
-
-	let nextBoard = new Array(numCols);
-	for (let i = 0; i < numCols; i++) {
-		nextBoard[i] = new Array(numRows);
-	}
-
-	let pickedCell = cells[coords[0]][coords[1]];
-
-	pickedCell.pick();
-
-	for (let i = 0; i < numCols; i++) {
-		for (let j = 0; j < numRows; j++) {
-			let mainCell = cells[i][j];
-			if (mainCell.propped == true) {
-				nextBoard[i][j] = cells[i][j];
-			} else {
-				//look at neighbors
-				let finalStates = mainCell.info;
-				for (let k = 0; k < 4; k++) {
-					let x;
-					let y;
-					if (k < 2) {
-						x = i - 1 + k * 2;
-						y = j;
-					} else {
-						x = i;
-						y = j - 1 + (k - 2) * 2;
-					}
-					if (x < 0 || x >= numCols || y < 0 || y >= numRows) {
-						continue;
-					}
-					
-					let neighborCell = cells[x][y];
-					let neighborIndex; //in direction of neighbor
-					if (k == 0) {
-						neighborIndex = 3;
-					} else if (k == 1) {
-						neighborIndex = 1;
-					} else if (k == 2) {
-						neighborIndex = 0;
-					} else {
-						neighborIndex = 2;
-					}
-					let lookIndex = (neighborIndex + 2) % 4; // in direction of main cell
-					let allowedSockets = getAllowedSockets(
-						neighborCell.info,
-						lookIndex
-					);
-					finalStates = reducePossibleStates(
-						finalStates,
-						allowedSockets,
-						neighborIndex
-					);
-					if (finalStates.length < 1) {
-						restart = true;
-						break;
-					}
-				}
-				nextBoard[i][j] = new Cell(finalStates);
-			}
-		}
-	}
-	cells = nextBoard;
-}
-
-/**
- * returns array of states currentStates has to be reduced to by which side adjSide givenSockets connects with
- * @param {Array<number>} currentStates - initial states of a cell
- * @param {Array<string>} givenSockets - tile containing all 4 sets of sockets to reduce currentStates with
- * @param {number} adjSide - index with with choose which set of sockets in givenSockets to reduce currentStates with
- * @returns {Array<number>}
- */
-function reducePossibleStates(currentStates, givenSockets, adjSide) {
-	let newStates = [];
-	for (let i = 0; i < currentStates.length; i++) {
-		// console.log(adjSide);
-		let curState = currentStates[i];
-		// console.log(curState);//1
-		let curConn = connectionArr[curState];//does this makes sense
-		// console.log(curConn);//['111', '111', '111', '101']
-		let singleSide = curConn[adjSide];
-		// console.log(singleSide);//"101"
-		if (givenSockets.includes(singleSide)) {
-			newStates.push(curState);
-		}
-	}
-	return newStates;
-}
-
-/**
- * draws the collapsed states of cells or heat map depending on how many possible states a cell has left
- */
-function drawMap() {
-	for (let i = 0; i < cells.length; i++) {
-		for (let j = 0; j < cells[i].length; j++) {
-			let x = i * boxWidth;
-			let y = j * boxHeight;
-			if (cells[i][j].info.length == 1) {
-				ctxP.drawImage(imgs[cells[i][j].info[0]], x, y, boxWidth, boxHeight);
-			} else {
-				// drawDetailedCell(cells[i][j], x, y, boxWidth, boxHeight);
-				drawFRect(ctxP, x, y, boxWidth, boxHeight, colorSMap[cells[i][j].info.length-1]);
-			}
-		}
-	}
-}
-
-/**
- * draws all current states of curCell within the borders of width w and height h at x and y
- * @param {Cell} curCell - cell
- * @param {number} x - x value of topleft of cell
- * @param {number} y - y value of topleft of cell
- * @param {number} w - width of cell
- * @param {number} h - height of cell
- */
-function drawDetailedCell(curCell, x, y, w, h){
-	const totalStates = 36;
-	const innerW = w/6;
-	const innerH = h/6;
-	for(let i = 0; i < curCell.info.length; i++){
-		let stateNum = curCell.info[i];
-		let innerX = x + (stateNum%6)*innerW;
-		let innerY = y + Math.floor(stateNum/6)*innerH;
-		ctxP.drawImage(imgs[curCell.info[i]], innerX, innerY, innerW, innerH);
-	}
-}
-
-/**
- * initializes template cell images into Image objects
- */
-async function loadBaseImages() {
-	for (let i = 0; i < numImgs; i++) {
-		let temp = new Image(imgSize, imgSize);
-		temp.src = "/" + imgsLocation + "/" + imgNames[i] + ".png";
-		imgs[i] = temp;
-	}
-}
-
-/**
- * draws template cell images to proc canvas
- */
-function drawBaseImages(){
-	for(let i = 0; i < numImgs; i++){
-		let x = (i % numMakeCols) * imgSize;
-		let y = Math.floor(i / numMakeCols) * imgSize;
-		ctxP.drawImage(imgs[i], x, y, boxWidth, boxHeight);
-	}
-}
-
-/**
- * draws template cell images and their 3 other rotations in order to proc canvas
- */
-async function drawRotImages() {
-	for (let i = 0; i < numImgs * 4; i++) {
-		let x = (i % numMakeCols) * imgSize;
-		let y = Math.floor(i / numMakeCols) * imgSize;
-		let rotX = x + imgSize / 2;
-		let rotY = y + imgSize / 2;
-		let degs = ((i % 4) * Math.PI) / 2;
-		ctxP.save();
-		ctxP.translate(rotX, rotY);
-		ctxP.rotate(degs);
-		ctxP.drawImage(imgs[Math.floor(i / 4)], -imgSize / 2, -imgSize / 2);
-		ctxP.restore();
-	}
-}
-
-/**
- * takes images drawn on proc canvas and stores them as ImageBitmaps to imgs array
- */
-async function loadRotImages() {
-	let newImgs = new Array(numImgs * 4);
-
-	for (let i = 0; i < numImgs * 4; i++) {
-		let x = (i % numMakeCols) * imgSize;
-		let y = Math.floor(i / numMakeCols) * imgSize;
-		newImgs[i] = await createImageBitmap(procCanvas, x, y, imgSize, imgSize);
-	}
-	imgs = newImgs;
-	numImgs = imgs.length;
-}
-
-/**
- * draws all cell images to proc canvas
- */
-function drawIndexRotImages() {
-	for (let i = 0; i < imgs.length; i++) {
-		let x = (i % numMakeCols) * 100;
-		let y = Math.floor(i / numMakeCols) * 100;
-		ctxP.drawImage(imgs[i], x, y);
-	}
-}
-
-/**
- * generate sockets for each rotated version of template cell image
- */
-function makeRotConns() {
-	let tempConns = {};
-	let keys = Object.keys(conns1);
-	let tempArrConns = new Array(keys.length * 4);
-	for (let i = 0; i < keys.length; i++) {
-		for (let j = 0; j < 4; j++) {
-			let newKey = "" + keys[i] + "" + j;
-			let index = 4 - j;
-			let curSides = conns1[keys[i]];
-			let back = curSides.slice(index, 4);
-			let front = curSides.slice(0, index);
-			let newSides = back.concat(front);
-			tempConns[newKey] = newSides;
-			tempArrConns[i * 4 + j] = newSides;
-		}
-	}
-	conns1 = tempConns;
-	connectionArr = tempArrConns;
-}
-
-/**
- * updates proc board
- */
-function updateMap() {
-	if(procPauseSwitch.checked == true){
-		return;
-	}
-	if (finished == false) {
-		if (restart == true) {
-			restart = false;
-			refreshProcValues();
-			createMap(numCols, numRows, numImgs);
-		}
-		// clearGraph(ctxP, procCanvas);
-		// iterateBoardR();
-		iterateBoard();
-		drawMap();
-	} else {
-		// checkConnections();
-		// clearInterval(procRunApp);
-		// procRunApp = null;
-	}
-}
 
 class Point {
 	/**
@@ -3087,9 +3079,9 @@ let fovSlider = document.getElementById("fov");
 class Game{
 	/**
 	 * 2d/3d game object
-	 * @param {*} canvL - left canvas
+	 * @param {HTMLCanvasElement} canvL - left canvas
 	 * @param {*} ctL - left canvas context
-	 * @param {*} canvR - right canvas
+	 * @param {HTMLCanvasElement} canvR - right canvas
 	 * @param {*} ctR - right canvas context
 	 */
 	constructor(canvL, ctL, canvR, ctR){
@@ -3417,4 +3409,4 @@ getScores();
 getRequests();
 loadMatchUpPlayers();
 
-firstInitProc();
+procBoard.firstInitProc();

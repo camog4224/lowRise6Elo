@@ -1163,7 +1163,7 @@ async function resolveMatchRequest(reqBox, approve) {
 function makeHTMLRequestBox(info) {
 	let requestChannel = document.getElementById("inputRequests");
 	let rBox = document.createElement("div");
-	rBox.classList.add("requestBox");
+	rBox.classList.add("requestBox", "paper");
 	let vP;
 	if (info.v1 == true) {
 		vP = info.name1;
@@ -1180,6 +1180,8 @@ function makeHTMLRequestBox(info) {
 		" won on : " +
 		info.readableTime;
 	rBox.dataset.id = info.requestId;
+
+	rBox.append(document.createElement("br"));
 
 	let tempBigDiv = document.createElement("div");
 
@@ -1204,6 +1206,7 @@ function makeHTMLRequestBox(info) {
 
 	tempBigDiv.append(reject);
 	tempBigDiv.classList.add("buttonGroup");
+
 
 	rBox.append(tempBigDiv);
 

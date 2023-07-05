@@ -5,9 +5,9 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="flat-remix-css-master/css/flat-remix.css">
-    <link rel="stylesheet" href="flat-remix-css-master/css/flat-remix.min.css">
+    <!-- <link rel="stylesheet" href="flat-remix-css-master/css/flat-remix.min.css"> -->
+    <link rel="stylesheet" href="styles.css">
     <title>Low Rise 6 Elo</title>
 </head>
 <body>
@@ -58,35 +58,71 @@
     </div>
 
     <div id = "procContent">
-        <canvas id="procCanvas" width="1200" height="700"></canvas>
-        
-        <input type="range" min="1" max="50" value="50" id="procCol" name = "procCol">
-        <label for="procCol" id = "procColLabel">Column Resolution</label><br>
-        
-        <input type="range" min="1" max="50" value="30" id="procRow" name = "procRow">
-        <label for="procRow" id = "procRowLabel">Row Resolution</label><br>
+        <div class = "paper">
+            <canvas id="procCanvas" style = "margin:auto" width="1200" height="700"></canvas>
+        </div>
 
-        <input id = "procReset" type="submit" value="Reset" class = "red-button">
-        <label class="onoffswitch">
-            <input id = "procPause" type="checkbox" name="my-switch">
-            <span data-on="play" data-off="pause"> <span></span> </span>
-        </label>
-        <!-- <input id = "procPause" type="submit" value="Pause" class = "blue-button"> -->
+        <div style = "width: 450px;" class = "paper">
+            <input type="range" min="1" max="50" value="50" id="procCol" name = "procCol">
+            <label for="procCol" id = "procColLabel">Column Resolution</label><br>
+            
+            <input type="range" min="1" max="50" value="30" id="procRow" name = "procRow">
+            <label for="procRow" id = "procRowLabel">Row Resolution</label><br>
+    
+            <input id = "procReset" type="submit" value="Reset" class = "red-button">
+    
+            <div style = "text-align: left;">
+                <label class="onoffswitch smallT">
+                    <input type="checkbox" id = "procPause">
+                    <span class = "smallT">
+                        <span class = "smallT" data-on="play" data-off="pause"></span> 
+                    </span>
+                </label>
+                <strong>Simulation</strong>
+            </div>
+        </div>
+        
+
     </div>
 
     <div id = "wormContent">
-        <canvas id="wormCanvas" width="1200" height="700"></canvas>
+        <div class = "paper">
+            <canvas id="wormCanvas" style = "margin:auto" width="1200" height="700"></canvas>
+        </div>
         
-        <div style = "width: 350px;" class = "paper">
-            <input type="checkbox" id = "randomSpecs" name = "randomSpecs">
-            <label for="randomSpecs">Continous Randomness</label><br>
-    
-            <input type="checkbox" id = "qTree" name = "qTree">
-            <label for="qTree">Show Tree</label><br>
+        <div style = "float: left; width: 310px;" class = "paper">
+            <div style = "text-align: right;">
+                <strong>Continual Randomness</strong>
+                <label class="onoffswitch">
+                    <input type="checkbox" id = "randomSpecs">
+                    <span>
+                        <span data-on="on" data-off="off"></span> 
+                    </span>
+                </label>
+            </div>
             
-            <input type="checkbox" id = "rangeCheck" name = "range">
-            <label for="range">Show Perception</label>
-    
+            <div style = "text-align: right;">
+                <strong style = "line-height: 45px;">Show Tree</strong>
+                <label class="onoffswitch">
+                    <input type="checkbox" id = "qTree">
+                    <span>
+                        <span data-on="on" data-off="off"></span> 
+                    </span>
+                </label>
+            </div>
+            
+            <div style = "text-align: right;">
+                <strong style = "margin: auto;">Show Perception</strong>
+                <label class="onoffswitch">
+                    <input type="checkbox" id = "rangeCheck">
+                    <span>
+                        <span data-on="on" data-off="off"></span> 
+                    </span>
+                </label>
+            </div>
+        </div>
+        
+        <div style = "float: left; width: 350px; margin-left: 20px;" class = "paper">
             <input type="range" min="1" max="50" value="20" id="rangeRange" name = "perc">
             <label for="perc" id = "percLabel">Perception</label><br>
             
@@ -101,24 +137,30 @@
     
             <input type="range" min="1" max="50" value="20" id="accel">
             <label for="accel" id = "accelLabel">Acceleration</label><br>
+
         </div>
     </div>
 
     <div id = "gameContent">
-        <canvas id="gameLCanvas" width="700" height="700"></canvas>
-        <canvas id="gameRCanvas" width="700" height="700"></canvas>
-        
-        <input type="range" min="1" max="20" value="4" id="fov">
-        <label for="fov" id = "fovLabel">FoV</label><br>
+        <div class = "paper">
+            <canvas id="gameLCanvas" width="700" height="700"></canvas>
+            <canvas id="gameRCanvas" width="700" height="700"></canvas>
+        </div>
 
-        <input type="radio" id="fowFull" name="showFow" value="fowFull">
-        <label for="fowFull">Full</label><br>
+        <div style = "width: 350px;" class = "paper">
+            <input type="range" min="1" max="20" value="4" id="fov">
+            <label for="fov" id = "fovLabel">FoV</label><br>
+    
+            <input type="radio" id="fowFull" name="showFow" value="fowFull">
+            <label for="fowFull">Full</label><br>
+            
+            <input type="radio" id="fowSB" name="showFow" value="fowSB">
+            <label for="fowSB">Seen Borders</label><br>
+            
+            <input type="radio" id="fowBP" name="showFow" value="fowBP" checked>
+            <label for="fowBP">Border Parts</label>
+        </div>
         
-        <input type="radio" id="fowSB" name="showFow" value="fowSB">
-        <label for="fowSB">Seen Borders</label><br>
-        
-        <input type="radio" id="fowBP" name="showFow" value="fowBP" checked>
-        <label for="fowBP">Border Parts</label>
 
     </div>
 
@@ -129,7 +171,7 @@
         <div id = "middle">
             <div style = "display: block; overflow: auto;" class = "paper">
             <!-- <div id = "yellowMiddle" class = "paper"> -->
-                <div class = "paper manipulations">
+                <div class = "paper">
                     <div style = "display: inline-block;">
                         <div>Person A : </div>
                         <select id = "s1"></select>
@@ -149,13 +191,13 @@
                     <input id = "subSend" type="submit" value="Submit" class = "green-button">
                 </div>
                 
-                <div style = "display: inline-block;" class = "paper manipulations">
+                <div style = "display: inline-block;" class = "paper">
                     <label for="newPlayer">Add New Person:</label><br>
                     <input type="text" id="newPlayer" name="newPlayer" placeholder="Name"><br>
                     <input id = "subNewP" type="submit" value="Submit" class = "green-button">
                 </div>
                 
-                <div style = "display: inline-block;" class = "paper manipulations">
+                <div style = "display: inline-block;" class = "paper">
                     <label for="newPlayer">Add ID:</label><br>
                     <select id = "h1"></select>
                     <input id = "subID" type="submit" value="Submit" class = "green-button">

@@ -43,11 +43,8 @@ input[type = "range"]::-moz-range-thumb{
 }
 
 .movieBox{
-    /* background-color: rgb(223, 209, 107); */
-    /* border: 2px solid #003B62;
-    padding: 10px;
-    margin-bottom: 10px;
-    margin-right: 10px; */
+    margin-right: 10px;
+    margin-top: 10px;
     height: 175px;
     width: 200px;
     display: inline-block;
@@ -303,8 +300,8 @@ td {
 }
 
 .requestBox {
-    background-color: rgb(200, 199, 187);
-    border: 2px solid #003B62;
+    /* background-color: rgb(200, 199, 187); */
+    /* border: 2px solid #003B62; */
     padding: 10px;
     margin-bottom: 10px;
     margin-right: 10px;
@@ -312,5 +309,10 @@ td {
     height: 100px;
     width: 200px;
     display: inline-block;
-    
+    font-size: 14px;
+    line-height: 14px;
+}
+
+.smallT {
+    font-size: 12px !important;
 }

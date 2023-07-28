@@ -6,7 +6,6 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="flat-remix-css-master/css/flat-remix.css">
-    <!-- <link rel="stylesheet" href="flat-remix-css-master/css/flat-remix.min.css"> -->
     <link rel="stylesheet" href="styles.css">
     <title>Low Rise 6 Elo</title>
 </head>
@@ -28,30 +27,36 @@
     </div>
     
     <div id = "movieContent">
-        <br>
-        <div style = "width: 225px;"class = "paper">
-            <label for="moveInput">Add New Movie:</label><br>
-            <input type="text" id="movieInput" name="movieInput" placeholder="Movie Title"><br>
-            <input id = "movieSend" type="submit" value="Submit Movie" class = "green-button">
+        <div>
+            <div style = "width: 225px;" class = "paper">
+                <label for="moveInput">Add New Movie:</label><br>
+                <input type="text" id="movieInput" name="movieInput" placeholder="Movie Title"><br>
+                <input id = "movieSend" type="submit" value="Submit Movie" class = "green-button">
+            </div>
+            <div class = "paper">
+                <h2>Vote for Movies</h2>
+            </div>
+            <br>
         </div>
-        <div class = "paper">
-            <h2>Vote for a Movie to Watch after Spring Break with Refreshments</h2>
-        </div>
+        
         <div class = "paper">
             <div id = "moviesDisplay"></div>
         </div>
     </div>
 
     <div id = "visualContent">
-        <div style = "height: 70px">
-            <select style = "float: left;" id = "d1"></select>
-            <input style = "float: left;" id = "graphSend" type="submit" value="Show Graph" class = "green-button">
-            <input style = "float: left;" id = "clearSend" type="submit" value="Clear Graph" class = "red-button">
-            <input style = "float: right;"id = "timeSend" type="submit" value="Show Games" class = "green-button">
+        <div style = "height: 70px" class = "paper">
+            <select style = "float: left; margin-left: 10px;" id = "d1"></select>
+            <input style = "float: left; margin-left: 20px;" id = "graphSend" type="submit" value="Show Graph" class = "green-button">
+            <input style = "float: left; margin-left: 20px;" id = "clearSend" type="submit" value="Clear Graph" class = "red-button">
+            <input style = "float: right; margin-right: 10px;" id = "gameSend" type="submit" value="Show Games" class = "green-button">
         </div>
+        
         <div>
-            <canvas id="myCanvas" width="400" height="400"></canvas>
-            <div id = "gamesDisplay" class = "paper">
+            <div class = "paper" style = "width: 500px; height: 500px;">
+                <canvas id="myCanvas" width="400" height="400"></canvas>
+            </div>
+            <div style = "float: right; padding: 10px;" id = "gamesDisplay" class = "paper">
                 <table id = "gamesTable"></table>
             </div>
         </div>
@@ -69,12 +74,12 @@
             <input type="range" min="1" max="50" value="30" id="procRow" name = "procRow">
             <label for="procRow" id = "procRowLabel">Row Resolution</label><br>
     
-            <input id = "procReset" type="submit" value="Reset" class = "red-button">
+            <input style = "float: left;" id = "procReset" type="submit" value="Reset" class = "red-button">
     
-            <div style = "text-align: left;">
-                <label class="onoffswitch smallT">
-                    <input type="checkbox" id = "procPause">
-                    <span class = "smallT">
+            <div style = "padding-left: 200px;">
+                <label class="onoffswitch">
+                    <input type="checkbox" id = "procPlay" checked>
+                    <span>
                         <span class = "smallT" data-on="play" data-off="pause"></span> 
                     </span>
                 </label>
@@ -122,7 +127,7 @@
             </div>
         </div>
         
-        <div style = "float: left; width: 350px; margin-left: 20px;" class = "paper">
+        <div style = "float: left; width: 375px; margin-left: 20px;" class = "paper">
             <input type="range" min="1" max="50" value="20" id="rangeRange" name = "perc">
             <label for="perc" id = "percLabel">Perception</label><br>
             

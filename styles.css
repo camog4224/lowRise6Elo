@@ -195,7 +195,7 @@ input[type = "range"]::-moz-range-thumb{
 }
 
 .acceptButton{
-    background-color: rgb(64, 255, 0);
+    background-color: #19a187;
     height: 35px;
     width: 45px;
     border: 1px solid #003B62;
@@ -205,7 +205,7 @@ input[type = "range"]::-moz-range-thumb{
 }
 
 .rejectButton{
-    background-color: rgb(255, 0, 0);
+    background-color: #d41919;
     height: 35px;
     width: 45px;
     border: 1px solid #003B62;
@@ -250,24 +250,28 @@ input[type = "range"]::-moz-range-thumb{
     padding-left: 10px;
 }
 
-#gamesDisplay {
+/* #gamesDisplay {
     background-color: rgb(186, 223, 236);
     position: relative;
-    float: right;
     border: 2px solid #003B62;
+    float: right;
     padding: 10px;
-}
+} */
 
 .float-left{
     float: left;
 }
 
 .winRow{
-    background-color: rgb(148, 201, 130);
+    /* background-color: rgb(148, 201, 130); */
+    background-color: rgba(25, 161, 135, .5);
+    /* background-color: #19a187; */
 }
 
 .loseRow{
-    background-color: rgb(159, 107, 107);
+    /* background-color: rgb(159, 107, 107); */
+    background-color: rgba(212, 25, 25, .5);
+    /* background-color: #d41919; */
 }
 
 td {
@@ -313,6 +317,9 @@ td {
     line-height: 14px;
 }
 
-.smallT {
-    font-size: 12px !important;
+.onoffswitch span span.smallT::after {
+    content: attr(data-off);
+    padding-right: 10px;
+    background: #b8174c;
+    text-align: right;
 }

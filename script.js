@@ -69,7 +69,7 @@ let wormContent = document.getElementById("wormContent");
 let procContent = document.getElementById("procContent");
 let gameContent = document.getElementById("gameContent");
 
-let timeButton = document.getElementById("timeSend");
+let timeButton = document.getElementById("gameSend");
 timeButton.addEventListener("click", displayMatches);
 
 let graphButton = document.getElementById("graphSend");
@@ -1431,11 +1431,11 @@ function refreshSValues() {
 	accelConst = accSlider.value * accelMult;
 	percConst = percSlider.value * percMult;
 
-	// aLabel.innerHTML = "Align : " + aSlider.value;
-	// sLabel.innerHTML = "Seperation : " + sSlider.value;
-	// cLabel.innerHTML = "Cohesion : " + cSlider.value;
-	// accLabel.innerHTML = "Acceleration : " + accSlider.value;
-	// pLabel.innerHTML = "Perception : " + percSlider.value;
+	aLabel.innerHTML = "Align : " + aSlider.value;
+	sLabel.innerHTML = "Seperation : " + sSlider.value;
+	cLabel.innerHTML = "Cohesion : " + cSlider.value;
+	accLabel.innerHTML = "Acceleration : " + accSlider.value;
+	pLabel.innerHTML = "Perception : " + percSlider.value;
 }
 
 /**
@@ -2138,8 +2138,8 @@ class Quad {
  * Initializes worm tab
  */
 function initWorms() {
-	wormRunApp = setInterval(updateWorms, 100);
 	wormFleet = new Fleet(300, 3, wormWidth, wormHeight, ctxW, wormCanvas, 10);
+	wormRunApp = setInterval(updateWorms, 100);
 	wormCounter = 0;
 }
 
@@ -2180,7 +2180,7 @@ let rowSliderLabel = document.getElementById("procRowLabel");
 
 let procReset = document.getElementById("procReset");
 
-let procPauseSwitch = document.getElementById("procPause");
+let procPlaySwitch = document.getElementById("procPlay");
 
 class Board{
 	
@@ -2684,7 +2684,7 @@ class Board{
 	 * updates proc board
 	 */
 	updateMap() {
-		if(procPauseSwitch.checked == true){
+		if(procPlaySwitch.checked == false){
 			return;
 		}
 		if (this.finishedIterating == false) {

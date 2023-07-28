@@ -11,14 +11,34 @@
 </head>
 <body>
     <div style = "display: block; overflow: auto;">
-        <div id = "navBar" class = "paper">
-            <div id = "main" class = "with-shadow navButton">Main</div>
-            <div id = "visual" class = "with-shadow navButton">Visuals</div>
-            <div id = "movie" class = "with-shadow navButton">Movies</div>
-            <div id = "worms" class = "with-shadow navButton">Worms</div>
-            <div id = "proc" class = "with-shadow navButton">Proc</div>
-            <div id = "game" class = "with-shadow navButton">Game</div>
+
+        <div id = "navBar" class = "paper" style = "padding-top: 30px;">
+            <label class="checktext">
+                <input type="radio" name="navOptions" value="mainContent" checked>
+                <span>Main</span>
+            </label>
+            <label class="checktext">
+                <input type="radio" name="navOptions" value="visualContent">
+                <span>Visual</span>
+            </label>
+            <label class="checktext">
+                <input type="radio" name="navOptions" value="movieContent">
+                <span>Movies</span>
+            </label>
+            <label class="checktext">
+                <input type="radio" name="navOptions" value="wormContent">
+                <span>Worms</span>
+            </label>
+            <label class="checktext">
+                <input type="radio" name="navOptions" value="procContent">
+                <span>Proc</span>
+            </label>
+            <label class="checktext">
+                <input type="radio" name="navOptions" value="gameContent">
+                <span>Game</span>
+            </label>
         </div>
+
         <div id = "userDisplay" class = "paper">
             <div id = "userDisplayText"></div>
             <input id = "signSend" type="submit" value="Sign In" class = "blue-button">
@@ -27,19 +47,18 @@
     </div>
     
     <div id = "movieContent">
-        <div>
-            <div style = "width: 225px;" class = "paper">
+        <div class = "paper" style = "display: flex;">
+            <div style = "width: 225px; float: left;" class = "paper">
                 <label for="moveInput">Add New Movie:</label><br>
                 <input type="text" id="movieInput" name="movieInput" placeholder="Movie Title"><br>
                 <input id = "movieSend" type="submit" value="Submit Movie" class = "green-button">
             </div>
-            <div class = "paper">
+            <div class = "paper" style = "float: left;">
                 <h2>Vote for Movies</h2>
             </div>
-            <br>
         </div>
         
-        <div class = "paper">
+        <div class = "paper" style = "display: inline-block;">
             <div id = "moviesDisplay"></div>
         </div>
     </div>

@@ -32,35 +32,35 @@ addIDButton.addEventListener("click", addID);
 
 let displayUserInfo = document.getElementById("displayInfo");
 
-let mainButton = document.getElementById("main");
-mainButton.addEventListener("click", function () {
-	showTab("mainContent");
-});
+// let mainButton = document.getElementById("main");
+// mainButton.addEventListener("click", function () {
+// 	showTab("mainContent");
+// });
 
-let visualButton = document.getElementById("visual");
-visualButton.addEventListener("click", function () {
-	showTab("visualContent");
-});
+// let visualButton = document.getElementById("visual");
+// visualButton.addEventListener("click", function () {
+// 	showTab("visualContent");
+// });
 
-let movieButton = document.getElementById("movie");
-movieButton.addEventListener("click", function () {
-	showTab("movieContent");
-});
+// let movieButton = document.getElementById("movie");
+// movieButton.addEventListener("click", function () {
+// 	showTab("movieContent");
+// });
 
-let wormButton = document.getElementById("worms");
-wormButton.addEventListener("click", function () {
-	showTab("wormContent");
-});
+// let wormButton = document.getElementById("worms");
+// wormButton.addEventListener("click", function () {
+// 	showTab("wormContent");
+// });
 
-let procButton = document.getElementById("proc");
-procButton.addEventListener("click", function () {
-	showTab("procContent");
-});
+// let procButton = document.getElementById("proc");
+// procButton.addEventListener("click", function () {
+// 	showTab("procContent");
+// });
 
-let gameButton = document.getElementById("game");
-gameButton.addEventListener("click", function () {
-	showTab("gameContent");
-});
+// let gameButton = document.getElementById("game");
+// gameButton.addEventListener("click", function () {
+// 	showTab("gameContent");
+// });
 
 let mainContent = document.getElementById("mainContent");
 let visualContent = document.getElementById("visualContent");
@@ -721,6 +721,17 @@ function showTab(key) {
 	initSpec(key);
 	hideAll(key);
 }
+
+function addNavButtonEvents(){
+	let navButtons = document.getElementsByName("navOptions");
+	for(let i = 0; i < navButtons.length; i++){
+		navButtons[i].addEventListener("change", function (){
+			showTab(this.value);
+		});
+	}
+}
+
+addNavButtonEvents();
 
 /**
  * initializes selected tab's functions

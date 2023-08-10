@@ -73,7 +73,7 @@
         
         <div style = "float: none;">
             <div class = "paper" style = "float: left;">
-                <canvas id="myCanvas" width="400" height="400"></canvas>
+                <div id = "myplot"></div>
             </div>
             <div style = "float: right; padding: 10px;" id = "gamesDisplay" class = "paper">
                 <table id = "gamesTable"></table>
@@ -167,8 +167,8 @@
 
     <div id = "gameContent">
         <div class = "paper">
-            <canvas id="gameLCanvas" width="700" height="700"></canvas>
-            <canvas id="gameRCanvas" width="700" height="700"></canvas>
+            <canvas id="gameLCanvas" width="600" height="600"></canvas>
+            <canvas id="gameRCanvas" width="600" height="600"></canvas>
         </div>
 
         <div style = "width: 350px;" class = "paper">
@@ -197,11 +197,11 @@
             <!-- <div id = "yellowMiddle" class = "paper"> -->
                 <div class = "paper">
                     <div style = "display: inline-block;">
-                        <div>Person A : </div>
+                        <div>Player A : </div>
                         <select id = "s1"></select>
                     </div>
                     <div style = "display: inline-block;">
-                        <div>Person B : </div>
+                        <div>Player B : </div>
                         <select id = "s2"></select>
                     </div>
                     <div>
@@ -216,8 +216,8 @@
                 </div>
                 
                 <div style = "display: inline-block;" class = "paper">
-                    <label for="newPlayer">Add New Person:</label><br>
-                    <input type="text" id="newPlayer" name="newPlayer" placeholder="Name"><br>
+                    <label for="newPlayer">Add New Player:</label><br>
+                    <input type="text" id="newPlayer" name="newPlayer" placeholder="New Name Here"><br>
                     <input id = "subNewP" type="submit" value="Submit" class = "green-button">
                 </div>
                 

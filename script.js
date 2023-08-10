@@ -73,7 +73,7 @@ let timeButton = document.getElementById("gameSend");
 timeButton.addEventListener("click", displayMatches);
 
 let graphButton = document.getElementById("graphSend");
-graphButton.addEventListener("click", plotPoints);
+graphButton.addEventListener("click", showVisuals);
 
 let clearButton = document.getElementById("clearSend");
 clearButton.addEventListener("click", function () {
@@ -93,6 +93,10 @@ movieSendButton.addEventListener("click", reqAddMovie);
 
 const k = 32;
 const d = 400;
+
+import * as Plot from "https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6/+esm";
+import * as d3 from "https://cdn.jsdelivr.net/npm/d3@5/+esm";
+// import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
 
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.12.1/firebase-app.js";
@@ -228,6 +232,8 @@ async function displayMovies() {
 		for (let i = 0; i < info.length; i++) {
 			let movieBox = document.createElement("DIV");
 			movieBox.classList.add("movieBox");
+			movieBox.classList.add("paper");
+			movieBox.classList.add("with-shadow");
 	
 			let movieTitle = document.createElement("DIV");
 			movieTitle.innerHTML = info[i].title;
@@ -500,77 +506,595 @@ async function displayMatches() {
 	await makePastGameTable(info, oppInfo);
 }
 
-let canvas = document.getElementById("myCanvas");
-
-let ctx = canvas.getContext("2d");
-
 /**
  * clears the context of the canvas inputed
- * @param {object} ct - canvas context to clear
- * @param {object} canv - canvas to clear
+ * @param {Object} ct - canvas context to clear
+ * @param {Object} canv - canvas to clear
  */
 function clearGraph(ct, canv) {
 	ct.clearRect(0, 0, canv.width, canv.height);
 }
 
-/**
- * plots the points of the selected player's elo over their games played
- */
-async function plotPoints() {
-	let info = await getPlayer(gamesPerson.value);
-
-	let colors = ["#FF0000", "#00FF00", "#0000FF", "#F000F0", "#00F0F0"];
-	let numPoints = info.gamesPlayed + 1;
-	let r = 5;
-	let points = [];
-	let x;
-	let y;
-
-	let border = 0.1;
-	let xDif = (canvas.width / numPoints) * (1 - border);
-	let minY = 20000;
-	let maxY = 0;
-	for (let i = 0; i < numPoints; i++) {
-		if (info.elo[i] > maxY) {
-			maxY = info.elo[i];
+function alignInfo(data){
+	let expandedData = {};
+	for(let i = 0; i < data.length; i++){
+		let player = data[i];
+		let tempArr = [];
+		for(let j = 0; j < player.time.length; j++){
+			let d = new Date(player.time[j]);
+			tempArr.push(
+				{
+					elo: player.elo[j],
+					readableTime: d.toISOString().split('T')[0],
+					index: i,
+					name: player.name
+				}
+			);
 		}
-		if (info.elo[i] < minY) {
-			minY = info.elo[i];
+		expandedData[player.name] = tempArr;
+	}
+	return expandedData;
+}
+
+async function plotPlayerPoints(){
+	let curPlot = document.querySelector("#myplot");
+	if(curPlot.lastElementChild){
+		curPlot.removeChild(curPlot.lastElementChild)
+	}
+	let info = await eloRankedDocs();
+
+	// let expandedInfo = expandPlayerData(info);
+	// console.log(expandedInfo);
+	// let chartE = await makeGoodPlot(expandedInfo);
+	// curPlot.append(chartE);
+	
+	
+	let alignedInfo = alignInfo(info);
+	console.log(alignedInfo);
+	let chartB = await makeCoolChart(alignedInfo);
+	curPlot.append(chartB);
+}
+async function makeGoodPlot(data){
+	let parseTime = d3.timeParse("%Y-%m-%d");
+	let chart = await LineChart(data, {
+		x: d => parseTime(d.readableTime),
+		y: d => d.elo,
+		z: d => d.name,
+		yLabel: "↑ Elo",
+		width: 750,
+		height: 500,
+		yDomain: [800,1200],
+		color: "steelblue"
+	  });
+	return chart;
+}
+
+// https://observablehq.com/@d3/multi-line-chart
+function LineChart(data, {
+	x = ([x]) => x, // given d in data, returns the (temporal) x-value
+	y = ([, y]) => y, // given d in data, returns the (quantitative) y-value
+	z = () => 1, // given d in data, returns the (categorical) z-value
+	title, // given d in data, returns the title text
+	defined, // for gaps in data
+	curve = d3.curveLinear, // method of interpolation between points
+	marginTop = 20, // top margin, in pixels
+	marginRight = 30, // right margin, in pixels
+	marginBottom = 30, // bottom margin, in pixels
+	marginLeft = 40, // left margin, in pixels
+	width = 640, // outer width, in pixels
+	height = 400, // outer height, in pixels
+	xType = d3.scaleUtc, // type of x-scale
+	xDomain, // [xmin, xmax]
+	xRange = [marginLeft, width - marginRight], // [left, right]
+	yType = d3.scaleLinear, // type of y-scale
+	yDomain, // [ymin, ymax]
+	yRange = [height - marginBottom, marginTop], // [bottom, top]
+	yFormat, // a format specifier string for the y-axis
+	yLabel, // a label for the y-axis
+	zDomain, // array of z-values
+	color = "currentColor", // stroke color of line, as a constant or a function of *z*
+	strokeLinecap, // stroke line cap of line
+	strokeLinejoin, // stroke line join of line
+	strokeWidth = 1.5, // stroke width of line
+	strokeOpacity, // stroke opacity of line
+	mixBlendMode = "multiply", // blend mode of lines
+	voronoi // show a Voronoi overlay? (for debugging)
+  } = {}) {
+	// Compute values.
+	const X = d3.map(data, x);
+	const Y = d3.map(data, y);
+	const Z = d3.map(data, z);
+	const O = d3.map(data, d => d);
+	if (defined === undefined) defined = (d, i) => !isNaN(X[i]) && !isNaN(Y[i]);
+	const D = d3.map(data, defined);
+  
+	// Compute default domains, and unique the z-domain.
+	if (xDomain === undefined) xDomain = d3.extent(X);
+	if (yDomain === undefined) yDomain = [0, d3.max(Y, d => typeof d === "string" ? +d : d)];
+	if (zDomain === undefined) zDomain = Z;
+	zDomain = new d3.InternSet(zDomain);
+  
+	// Omit any data not present in the z-domain.
+	const I = d3.range(X.length).filter(i => zDomain.has(Z[i]));
+  
+	// Construct scales and axes.
+	const xScale = xType(xDomain, xRange);
+	const yScale = yType(yDomain, yRange);
+	const xAxis = d3.axisBottom(xScale).ticks(width / 80).tickSizeOuter(0);
+	const yAxis = d3.axisLeft(yScale).ticks(height / 60, yFormat);
+  
+	// Compute titles.
+	const T = title === undefined ? Z : title === null ? null : d3.map(data, title);
+  
+	// Construct a line generator.
+	const line = d3.line()
+		.defined(i => D[i])
+		.curve(curve)
+		.x(i => xScale(X[i]))
+		.y(i => yScale(Y[i]));
+  
+	const svg = d3.create("svg")
+		.attr("width", width)
+		.attr("height", height)
+		.attr("viewBox", [0, 0, width, height])
+		.attr("style", "max-width: 100%; height: auto; height: intrinsic;")
+		.style("-webkit-tap-highlight-color", "transparent")
+		.on("pointerenter", pointerentered)
+		.on("pointermove", pointermoved)
+		.on("pointerleave", pointerleft)
+		.on("touchstart", event => event.preventDefault());
+  
+	svg.append("g")
+		.attr("transform", `translate(0,${height - marginBottom})`)
+		.call(xAxis);
+  
+	svg.append("g")
+		.attr("transform", `translate(${marginLeft},0)`)
+		.call(yAxis)
+		.call(g => g.select(".domain").remove())
+		.call(voronoi ? () => {} : g => g.selectAll(".tick line").clone()
+			.attr("x2", width - marginLeft - marginRight)
+			.attr("stroke-opacity", 0.1))
+		.call(g => g.append("text")
+			.attr("x", -marginLeft)
+			.attr("y", 10)
+			.attr("fill", "currentColor")
+			.attr("text-anchor", "start")
+			.text(yLabel));
+  
+	const path = svg.append("g")
+		.attr("fill", "none")
+		.attr("stroke", typeof color === "string" ? color : null)
+		.attr("stroke-linecap", strokeLinecap)
+		.attr("stroke-linejoin", strokeLinejoin)
+		.attr("stroke-width", strokeWidth)
+		.attr("stroke-opacity", strokeOpacity)
+	  .selectAll("path")
+	  .data(d3.group(I, i => Z[i]))
+	  .join("path")
+		.style("mix-blend-mode", mixBlendMode)
+		.attr("stroke", typeof color === "function" ? ([z]) => color(z) : null)
+		.attr("d", ([, I]) => line(I));
+  
+	const dot = svg.append("g")
+		.attr("display", "none");
+  
+	dot.append("circle")
+		.attr("r", 2.5);
+  
+	dot.append("text")
+		.attr("font-family", "sans-serif")
+		.attr("font-size", 10)
+		.attr("text-anchor", "middle")
+		.attr("y", -8);
+  
+	function pointermoved(event) {
+	  const [xm, ym] = d3.pointer(event);
+	  const i = d3.least(I, i => Math.hypot(xScale(X[i]) - xm, yScale(Y[i]) - ym)); // closest point
+	  path.style("stroke", ([z]) => Z[i] === z ? null : "#ddd").filter(([z]) => Z[i] === z).raise();
+	  dot.attr("transform", `translate(${xScale(X[i])},${yScale(Y[i])})`);
+	  if (T) dot.select("text").text(T[i]);
+	  svg.property("value", O[i]).dispatch("input", {bubbles: true});
+	}
+  
+	function pointerentered() {
+	  path.style("mix-blend-mode", null).style("stroke", "#ddd");
+	  dot.attr("display", null);
+	}
+  
+	function pointerleft() {
+	  path.style("mix-blend-mode", mixBlendMode).style("stroke", null);
+	  dot.attr("display", "none");
+	  svg.node().value = null;
+	  svg.dispatch("input", {bubbles: true});
+	}
+  
+	return Object.assign(svg.node(), {value: null});
+  }
+
+  async function makeCoolChart(data){
+	let width = 700;
+	let height = 500;
+	var svg = d3.create("svg")
+		.attr("width", width)
+		.attr("height", height)
+	
+	/*
+	Brush & Zoom area chart block to work with mulit-line charts.
+	Combining d3-brush and d3-zoom to implement Focus + Context.
+  
+	The focus chart is the main larger one where the zooming occurs.
+	The context chart is the smaller one below where the brush is used to specify a focused area.
+	*/
+  
+	// sets margins for both charts
+	var focusChartMargin = { top: 20, right: 20, bottom: 170, left: 60 };
+	var contextChartMargin = { top: 360, right: 20, bottom: 90, left: 60 };
+  
+	// width of both charts
+	var chartWidth = width - focusChartMargin.left - focusChartMargin.right;
+  
+	// height of either chart
+	var focusChartHeight = height - focusChartMargin.top - focusChartMargin.bottom;
+	var contextChartHeight = height - contextChartMargin.top - contextChartMargin.bottom;
+  
+	// bootstraps the d3 parent selection
+	svg
+	  .append("svg")
+	  .attr("width", chartWidth + focusChartMargin.left + focusChartMargin.right)
+	  .attr("height", focusChartHeight + focusChartMargin.top + focusChartMargin.bottom)
+	  .append("g")
+	  .attr("transform", "translate(" + focusChartMargin.left + "," + focusChartMargin.top + ")");
+  
+	// function to parse date field
+	var parseTime = d3.timeParse("%Y-%m-%d");
+  
+	//group all dates to get range for x axis later
+	var dates = [];
+	for (let key of Object.keys(data)) {
+	  data[key].forEach(bucketRecord => {
+		dates.push(parseTime(bucketRecord.readableTime));
+	  });
+	}
+  
+	//get max Y axis value by searching for the highest conversion rate
+	var maxYAxisValue = -Infinity;
+	for (let key of Object.keys(data)) {
+	  let maxYAxisValuePerBucket = Math.ceil(d3.max(data[key], d => d["elo"]));
+	  maxYAxisValue = Math.max(maxYAxisValuePerBucket, maxYAxisValue);
+	}
+  
+	// set the height of both y axis
+	var yFocus = d3.scaleLinear().range([focusChartHeight, 0]);
+	var yContext = d3.scaleLinear().range([contextChartHeight, 0]);
+  
+	// set the width of both x axis
+	var xFocus = d3.scaleTime().range([0, chartWidth]);
+	var xContext = d3.scaleTime().range([0, chartWidth]);
+  
+	// create both x axis to be rendered
+	var xAxisFocus = d3
+	  .axisBottom(xFocus)
+	  .ticks(10)
+	  .tickFormat(d3.timeFormat("%e %b %Y"));
+	var xAxisContext = d3
+	  .axisBottom(xContext)
+	  .ticks(10)
+	  .tickFormat(d3.timeFormat("%e %b %Y"));
+  
+	// create the one y axis to be rendered
+	var yAxisFocus = d3.axisLeft(yFocus).tickFormat(d => d);
+  
+	// build brush
+	var brush = d3
+	  .brushX()
+	  .extent([
+		[0, -10],
+		[chartWidth, contextChartHeight],
+	  ])
+	  .on("brush end", brushed);
+  
+	// build zoom for the focus chart
+	// as specified in "filter" - zooming in/out can be done by pinching on the trackpad while mouse is over focus chart
+	// zooming in can also be done by double clicking while mouse is over focus chart
+	var zoom = d3
+	  .zoom()
+	  .scaleExtent([1, Infinity])
+	  .translateExtent([
+		[0, 0],
+		[chartWidth, focusChartHeight],
+	  ])
+	  .extent([
+		[0, 0],
+		[chartWidth, focusChartHeight],
+	  ])
+	  .on("zoom", zoomed)
+	  .filter(() => d3.event.ctrlKey || d3.event.type === "dblclick" || d3.event.type === "mousedown");
+  
+	// create a line for focus chart
+	var lineFocus = d3
+	  .line()
+	  .x(d => xFocus(parseTime(d.readableTime)))
+	  .y(d => yFocus(d.elo));
+  
+	// create line for context chart
+	var lineContext = d3
+	  .line()
+	  .x(d => xContext(parseTime(d.readableTime)))
+	  .y(d => yContext(d.elo));
+  
+	// es lint disabled here so react won't warn about not using variable "clip"
+	/* eslint-disable */
+  
+	// clip is created so when the focus chart is zoomed in the data lines don't extend past the borders
+	var clip = svg
+	  .append("defs")
+	  .append("svg:clipPath")
+	  .attr("id", "clip")
+	  .append("svg:rect")
+	  .attr("width", chartWidth)
+	  .attr("height", focusChartHeight)
+	  .attr("x", 0)
+	  .attr("y", 0);
+  
+	// append the clip
+	var focusChartLines = svg
+	  .append("g")
+	  .attr("class", "focus")
+	  .attr("transform", "translate(" + focusChartMargin.left + "," + focusChartMargin.top + ")")
+	  .attr("clip-path", "url(#clip)");
+  
+	/* eslint-enable */
+  
+	// create focus chart
+	var focus = svg
+	  .append("g")
+	  .attr("class", "focus")
+	  .attr("transform", "translate(" + focusChartMargin.left + "," + focusChartMargin.top + ")");
+  
+	// create context chart
+	var context = svg
+	  .append("g")
+	  .attr("class", "context")
+	  .attr("transform", "translate(" + contextChartMargin.left + "," + (contextChartMargin.top + 50) + ")");
+  
+	// add data info to axis
+	xFocus.domain(d3.extent(dates));
+	yFocus.domain([800, maxYAxisValue]);
+	xContext.domain(xFocus.domain());
+	yContext.domain(yFocus.domain());
+  
+	// add axis to focus chart
+	focus
+	  .append("g")
+	  .attr("class", "x-axis")
+	  .attr("transform", "translate(0," + focusChartHeight + ")")
+	  .call(xAxisFocus);
+	focus
+	  .append("g")
+	  .attr("class", "y-axis")
+	  .call(yAxisFocus);
+  
+	// get list of bucket names
+	var bucketNames = [];
+	for (let key of Object.keys(data)) {
+	  bucketNames.push(key);
+	}
+  
+	// match colors to bucket name
+	var colors = d3
+	  .scaleOrdinal()
+	  .domain(bucketNames)
+	  .range(["#3498db", "#3cab4b", "#e74c3c", "#73169e", "#2ecc71"]);
+  
+	// go through data and create/append lines to both charts
+	for (let key of Object.keys(data)) {
+	  let bucket = data[key];
+	  focusChartLines
+		.append("path")
+		.datum(bucket)
+		.attr("class", "line")
+		.attr("fill", "none")
+		.attr("stroke", d => colors(key))
+		.attr("stroke-width", 1.5)
+		.attr("d", lineFocus);
+	  context
+		.append("path")
+		.datum(bucket)
+		.attr("class", "line")
+		.attr("fill", "none")
+		.attr("stroke", d => colors(key))
+		.attr("stroke-width", 1.5)
+		.attr("d", lineContext);
+	}
+  
+	// add x axis to context chart (y axis is not needed)
+	context
+	  .append("g")
+	  .attr("class", "x-axis")
+	  .attr("transform", "translate(0," + contextChartHeight + ")")
+	  .call(xAxisContext);
+  
+	// add bush to context chart
+	var contextBrush = context
+	  .append("g")
+	  .attr("class", "brush")
+	  .call(brush);
+  
+	// style brush resize handle
+	var brushHandlePath = d => {
+	  var e = +(d.type === "e"),
+		x = e ? 1 : -1,
+		y = contextChartHeight + 10;
+	  return (
+		"M" +
+		0.5 * x +
+		"," +
+		y +
+		"A6,6 0 0 " +
+		e +
+		" " +
+		6.5 * x +
+		"," +
+		(y + 6) +
+		"V" +
+		(2 * y - 6) +
+		"A6,6 0 0 " +
+		e +
+		" " +
+		0.5 * x +
+		"," +
+		2 * y +
+		"Z" +
+		"M" +
+		2.5 * x +
+		"," +
+		(y + 8) +
+		"V" +
+		(2 * y - 8) +
+		"M" +
+		4.5 * x +
+		"," +
+		(y + 8) +
+		"V" +
+		(2 * y - 8)
+	  );
+	};
+  
+	var brushHandle = contextBrush
+	  .selectAll(".handle--custom")
+	  .data([{ type: "w" }, { type: "e" }])
+	  .enter()
+	  .append("path")
+	  .attr("class", "handle--custom")
+	  .attr("stroke", "#000")
+	  .attr("cursor", "ew-resize")
+	  .attr("d", brushHandlePath);
+  
+	// overlay the zoom area rectangle on top of the focus chart
+	svg
+	  .append("rect")
+	  .attr("cursor", "move")
+	  .attr("fill", "none")
+	  .attr("pointer-events", "all")
+	  .attr("class", "zoom")
+	  .attr("width", chartWidth)
+	  .attr("height", focusChartHeight)
+	  .attr("transform", "translate(" + focusChartMargin.left + "," + focusChartMargin.top + ")")
+	  .call(zoom);
+  
+	contextBrush.call(brush.move, [0, chartWidth / 2]);
+  
+	// focus chart x label
+	focus
+	  .append("text")
+	  .attr("transform", "translate(" + chartWidth / 2 + " ," + (focusChartHeight + focusChartMargin.top + 25) + ")")
+	  .style("text-anchor", "middle")
+	  .style("font-size", "18px")
+	  .text("Time (UTC)");
+  
+	// focus chart y label
+	focus
+	  .append("text")
+	  .attr("text-anchor", "middle")
+	  .attr("transform", "translate(" + (-focusChartMargin.left + 20) + "," + focusChartHeight / 2 + ")rotate(-90)")
+	  .style("font-size", "18px")
+	  .text("Elo");
+  
+	function brushed() {
+	  if (d3.event.sourceEvent && d3.event.sourceEvent.type === "zoom") return; // ignore brush-by-zoom
+	  var s = d3.event.selection || xContext.range();
+	  xFocus.domain(s.map(xContext.invert, xContext));
+	  focusChartLines.selectAll(".line").attr("d", lineFocus);
+	  focus.select(".x-axis").call(xAxisFocus);
+	  svg.select(".zoom").call(zoom.transform, d3.zoomIdentity.scale(chartWidth / (s[1] - s[0])).translate(-s[0], 0));
+	  brushHandle
+		.attr("display", null)
+		.attr("transform", (d, i) => "translate(" + [s[i], -contextChartHeight - 20] + ")");
+	}
+  
+	function zoomed() {
+	  if (d3.event.sourceEvent && d3.event.sourceEvent.type === "brush") return; // ignore zoom-by-brush
+	  var t = d3.event.transform;
+	  xFocus.domain(t.rescaleX(xContext).domain());
+	  focusChartLines.selectAll(".line").attr("d", lineFocus);
+	  focus.select(".x-axis").call(xAxisFocus);
+	  var brushSelection = xFocus.range().map(t.invertX, t);
+	  context.select(".brush").call(brush.move, brushSelection);
+	  brushHandle
+		.attr("display", null)
+		.attr("transform", (d, i) => "translate(" + [brushSelection[i], -contextChartHeight - 20] + ")");
+	}
+	
+	return svg.node()
+  }
+
+async function showVisuals(){
+	plotPlayerPoints();
+}
+
+function convStringMonthToNumber(s){
+	switch(s){
+		case "Jan":
+			return "01";
+		case "Feb":
+			return "02";
+		case "Mar":
+			return "03";
+		case "Apr":
+			return "04";
+		case "May":
+			return "05";
+		case "Jun":
+			return "06";
+		case "Jul":
+			return "07";
+		case "Aug":
+			return "08";
+		case "Sep":
+			return "09";
+		case "Oct":
+			return "10";
+		case "Nov":
+			return "11";
+		case "Dec":
+			return "12";
+	}
+}
+
+function formatPlayerData(data){
+	for(let i = 0; i < data.readableTime.length; i++){
+		let year = data.readableTime[i].slice(11,15)
+		let month = convStringMonthToNumber(data.readableTime[i].slice(4,7));
+		let day = data.readableTime[i].slice(8,10);
+		data.readableTime[i] = "" + year + "-" + month + "-" + day;
+	}
+}
+
+function expandPlayerData(data){
+	let expandedData = [];
+	for(let i = 0; i < data.length; i++){
+		let player = data[i];
+		for(let j = 0; j < player.time.length; j++){
+			// console.log(player.time[j]);
+			let d = new Date(player.time[j]);
+			// console.log(d);
+			expandedData.push(
+				{
+					elo: player.elo[j],
+					readableTime: d.toISOString().split('T')[0],
+					index: i,
+					name: player.name
+				}
+			);
 		}
 	}
-	let yScale = canvas.height * (1 - border);
-
-	for (let i = 0; i < numPoints; i++) {
-		// x = Math.random()*(canvas.width-r) + r;
-		// y = Math.random()*(canvas.height-r) + r;
-		x = i * xDif + canvas.width * border * 0.5;
-		y =
-			canvas.height * (1 - border / 2) -
-			((info.elo[i] - minY) / (maxY - minY)) * yScale;
-		let c = colors[Math.floor(Math.random() * colors.length)];
-		points.push([x, y, c, info.elo[i]]);
-	}
-	//drawing lines
-	for (let i = 1; i < numPoints; i++) {
-		let x2 = points[i][0];
-		let y2 = points[i][1];
-		let x1 = points[i - 1][0];
-		let y1 = points[i - 1][1];
-		drawLin(ctx, x1, y1, x2, y2, "#000000", 5);
-	}
-	//drawing circles/text
-	for (let i = 0; i < numPoints; i++) {
-		let x2 = points[i][0];
-		let y2 = points[i][1];
-		let c = points[i][2];
-		drawTex(ctx, x2 - 2 * r, y2 - 2 * r, points[i][3]);
-		drawCirc(ctx, x2, y2, r, c);
-	}
+	return expandedData;
 }
 
 /**
  * draws circle of given size, color, and position to given canvas
- * @param {object} ct - context of canvas to draw circle to
+ * @param {Object} ct - context of canvas to draw circle to
  * @param {number} x - x position of center of circle
  * @param {number} y - y position of center of circle
  * @param {number} r - radius of circle
@@ -585,7 +1109,7 @@ function drawCirc(ct, x, y, r, c) {
 
 /**
  * draws line of given size, color, and position to given canvas
- * @param {object} ct - context of canvas to draw line to
+ * @param {Object} ct - context of canvas to draw line to
  * @param {number} x1 - x position of first point of line
  * @param {number} y1 - y position of first point of line
  * @param {number} x2 - x position of second point of line
@@ -605,7 +1129,7 @@ function drawLin(ct, x1, y1, x2, y2, c, w) {
 
 /**
  * draws text of given size, color, and position to given canvas
- * @param {object} ct - context of canvas to draw text to
+ * @param {Object} ct - context of canvas to draw text to
  * @param {number} x - x position top-left corner of text
  * @param {number} y - y position top-left corner of text
  * @param {number} text - string to be displayed
@@ -619,7 +1143,7 @@ function drawTex(ct, x, y, text, c) {
 
 /**
  * draws empty rectangle of given size, color, and position to given canvas
- * @param {object} canvas - canvas to draw rectangle to
+ * @param {Object} canvas - canvas to draw rectangle to
  * @param {number} x - x position top-left corner of rectangle
  * @param {number} y - y position top-left corner of rectangle
  * @param {number} w - width of rectangle
@@ -634,7 +1158,7 @@ function drawSRect(canv, x, y, w, h, c) {
 
 /**
  * draws filed rectangle of given size, color, and position to given canvas
- * @param {object} ct - context of canvas to draw rectangle to
+ * @param {Object} ct - context of canvas to draw rectangle to
  * @param {number} x - x position top-left corner of rectangle
  * @param {number} y - y position top-left corner of rectangle
  * @param {number} w - width of rectangle
@@ -648,7 +1172,7 @@ function drawFRect(ct, x, y, w, h, c) {
 
 /**
  * populates game table with information of selected player's games
- * @param {object} info - all information about selected player's games
+ * @param {Object} info - all information about selected player's games
  * @param {Array} oppInfo - array of each opponent selected player played against 
  */
 async function makePastGameTable(info, oppInfo) {
@@ -835,7 +1359,7 @@ async function signOutUser() {
 	signOut(auth)
 		.then(() => {
 			// Sign-out successful.
-			userDisplayText.innerHTML = "Signed in as : ---";
+			userDisplayText.innerHTML = "Not Signed In";
 		})
 		.catch((error) => {
 			// An error happened.
@@ -882,7 +1406,7 @@ async function addPlayer(name, euid) {
 
 /**
  * returns id of game request document in database
- * @param {object} info - information of a pending game
+ * @param {Object} info - information of a pending game
  * @returns {string}
  */
 async function addGameRequest(info) {
@@ -917,7 +1441,7 @@ async function requestDocs() {
 /**
  * returns game request document of id in database
  * @param {string} id - id of requested game request
- * @returns {object}
+ * @returns {Object}
  */
 async function getRequest(id) {
 	const docRef = doc(db, "pendingGames", id);
@@ -985,7 +1509,7 @@ function matchUp(name1, name2, v1, elo1, elo2, t, tr) {
 /**
  * returns info of player with name
  * @param {string} name - name of player
- * @returns {object}
+ * @returns {Object}
  */
 async function getPlayer(name) {
 	const docRef = doc(db, "playerInfo", name);
@@ -999,10 +1523,28 @@ async function getPlayer(name) {
 		return -1;
 	}
 }
+// firstRow.insertCell(0).innerHTML = "Name";
+// 	firstRow.insertCell(-1).innerHTML = "Elo";
+// 	firstRow.insertCell(0).innerHTML = "Rank";
+// 	firstRow.insertCell(-1).innerHTML = "Win %";
+// 	firstRow.insertCell(-1).innerHTML = "Total Games    ";
+// 	firstRow.insertCell(-1).innerHTML = "Last Game";
 
 /**
  * returns array of every player's info in descending order of elo
- * @returns {object}
+ * @returns {{
+ * name: String, 
+ * currentElo: number, 
+ * elo: number[],
+ * euid: String,
+ * gamesPlayed: number, 
+ * losses: number,
+ * opponents: String[],
+ * readableTime: String[],
+ * time: number[],
+ * victories: boolean[],
+ * wins: number
+ * }[]}
  */
 async function eloRankedDocs() {
 	const ref = collection(db, "playerInfo");
@@ -1127,7 +1669,7 @@ function checkCornell(emailString) {
 
 /**
  * resolves match request
- * @param {object} reqBox - request box user clicked on
+ * @param {Object} reqBox - request box user clicked on
  * @param {boolean} approve - whether user accepted request
  */
 async function resolveMatchRequest(reqBox, approve) {
@@ -1168,8 +1710,8 @@ async function resolveMatchRequest(reqBox, approve) {
 }
 
 /**
- * makes a html element from the data in info object
- * @param {object} info - contains the information for request box
+ * makes a html element from the data in info Object
+ * @param {Object} info - contains the information for request box
  */
 function makeHTMLRequestBox(info) {
 	let requestChannel = document.getElementById("inputRequests");
@@ -1254,7 +1796,7 @@ async function requestPlayer() {
 
 /**
  * turns match request into official match
- * @param {object} startInfo - request box info for submitting games
+ * @param {Object} startInfo - request box info for submitting games
  */
 async function formalizeMatch(startInfo) {
 	let p1Info = await getPlayer(startInfo.requester);
@@ -1574,7 +2116,7 @@ class Segment {
 	 * @param {Vector} pos1 - start of segment
 	 * @param {Vector} pos2 - end of segment
 	 * @param {number} width - width of segment
-	 * @param {object} ct - context of canvas
+	 * @param {Object} ct - context of canvas
 	 */
 	init2Pos(pos1, pos2, width, ct) {
 		this.ct = ct;
@@ -1688,7 +2230,7 @@ class Appendage {
 	 * @param {number} numSegs - number of segments
 	 * @param {number} maxW - max width appendage can travel before wrapping around
 	 * @param {number} maxH - max height appendage can travel before wrapping around
-	 * @param {object} ct - context of canvas to draw appendage to
+	 * @param {Object} ct - context of canvas to draw appendage to
 	 * @param {number} sp - speed of appendage
 	 * @param {string} col - color of appendage
 	 */
@@ -1810,8 +2352,8 @@ class Fleet {
 	 * @param {number} numSegs - number of segments per appendages
 	 * @param {number} maxW - max width any appendage can travel before wrapping around
 	 * @param {number} maxH - max height any appendage can travel before wrapping around
-	 * @param {object} ct - context for canvas for drawing appendages
-	 * @param {object} canv - canvas for drawing appendages
+	 * @param {Object} ct - context for canvas for drawing appendages
+	 * @param {Object} canv - canvas for drawing appendages
 	 * @param {number} sp - speed of each appendage
 	 */
 	constructor(numAgents, numSegs, maxW, maxH, ct, canv, sp) {
@@ -1966,13 +2508,13 @@ class Fleet {
 
 class Quad {
 	/**
-	 * creates Quadtree object
-	 * @param {object} par - parent of quadTree
+	 * creates Quadtree Object
+	 * @param {Object} par - parent of quadTree
 	 * @param {number} index - index of which of quadrants this quadtree inhabits
 	 * @param {Array<Appendage>} els - array of appendages inside this quadtree
 	 * @param {number} maxWidth - width of biggest parent quadTree
 	 * @param {number} maxHeight - height of biggest parent quadTree
-	 * @param {object} ct - context of canvas to draw quadTree on
+	 * @param {Object} ct - context of canvas to draw quadTree on
 	 */
 	constructor(par, index, els, maxWidth, maxHeight, ct) {
 		this.ct = ct;
@@ -2580,7 +3122,7 @@ class Board{
 	}
 
 	/**
-	 * initializes template cell images into Image objects
+	 * initializes template cell images into Image Objects
 	 */
 	async loadBaseImages() {
 		for (let i = 0; i < this.numCellTypes; i++) {
@@ -2990,13 +3532,13 @@ class User{
 		this.rays = [];
 		this.makeRays(numR);
 		/**
-		 * array of vectors from user to objects
+		 * array of vectors from user to Objects
 		 * @type {Array<Vector>} */
 		this.lookVs = [];
 		/**
 		 * array of colors for borders to draw
 		 * @type {Array<Array>} */
-		this.objectColors = [];
+		this.ObjectColors = [];
 		this.fovCone;
 	}
 
@@ -3029,7 +3571,7 @@ class User{
 	}
 
 	/**
-	 * returns border object in direction of angle and rayLen long
+	 * returns border Object in direction of angle and rayLen long
 	 * @param {number} angle - angle to make ray from
 	 * @param {number} rayLen - length of new ray
 	 * @returns {Border}
@@ -3087,12 +3629,12 @@ class User{
 let fovSlider = document.getElementById("fov");
 
 /**
- * object for whole game tab
+ * Object for whole game tab
  */
-//consider removing "game" moniker of everything now that its inside game object
+//consider removing "game" moniker of everything now that its inside game Object
 class Game{
 	/**
-	 * 2d/3d game object
+	 * 2d/3d game Object
 	 * @param {HTMLCanvasElement} canvL - left canvas
 	 * @param {*} ctL - left canvas context
 	 * @param {HTMLCanvasElement} canvR - right canvas
@@ -3134,11 +3676,11 @@ class Game{
 	}
 
 	/**
-	 * checks intersections between rays and all objects on screen
+	 * checks intersections between rays and all Objects on screen
 	 */
 	checkIntersections(){
 		this.user.lookVs = [];
-		this.user.objectColors = [];
+		this.user.ObjectColors = [];
 		for(let i = 0; i < this.bords.length; i++){
 			this.bords[i].seen = !getSelectedFoW.value == "fowSB";
 		}
@@ -3195,7 +3737,7 @@ class Game{
 					this.bords[bordIndex].seen = true;
 				}
 				this.user.lookVs.push(newV);
-				this.user.objectColors.push(intersectingPoints[closestIndex][3]);
+				this.user.ObjectColors.push(intersectingPoints[closestIndex][3]);
 			}
 
 			// for(let j = 0; j < intersectingObjects.length; j++){
@@ -3246,7 +3788,7 @@ class Game{
 	}
 
 	/**
-	 * draws rectangles on right game canvas corresponding to object hit on left game screen
+	 * draws rectangles on right game canvas corresponding to Object hit on left game screen
 	 */	
 	drawRenderRects(){
 		for(let i = 0; i < this.user.lookVs.length; i++){
@@ -3260,7 +3802,7 @@ class Game{
 			let h = Math.min(30*this.canvasRHeight/curLookV.length, this.canvasRHeight);
 			let hDif = this.canvasRHeight - h;
 	
-			let rectColor = this.user.objectColors[i];
+			let rectColor = this.user.ObjectColors[i];
 			let tempC = rgbToHSV(rectColor);
 			let brightPercent = h/this.canvasRHeight;
 			let brightOffset = 1-brightPercent;

@@ -542,175 +542,11 @@ async function plotPlayerPoints(){
 		curPlot.removeChild(curPlot.lastElementChild)
 	}
 	let info = await eloRankedDocs();
-
-	// let expandedInfo = expandPlayerData(info);
-	// console.log(expandedInfo);
-	// let chartE = await makeGoodPlot(expandedInfo);
-	// curPlot.append(chartE);
-	
 	
 	let alignedInfo = alignInfo(info);
-	// console.log(alignedInfo);
 	let chartB = await makeCoolerChart(alignedInfo);
 	curPlot.append(chartB);
 }
-async function makeGoodPlot(data){
-	let parseTime = d3.timeParse("%Y-%m-%d");
-	let chart = await LineChart(data, {
-		x: d => parseTime(d.readableTime),
-		y: d => d.elo,
-		z: d => d.name,
-		yLabel: "↑ Elo",
-		width: 750,
-		height: 500,
-		yDomain: [800,1200],
-		color: "steelblue"
-	  });
-	return chart;
-}
-
-// https://observablehq.com/@d3/multi-line-chart
-function LineChart(data, {
-	x = ([x]) => x, // given d in data, returns the (temporal) x-value
-	y = ([, y]) => y, // given d in data, returns the (quantitative) y-value
-	z = () => 1, // given d in data, returns the (categorical) z-value
-	title, // given d in data, returns the title text
-	defined, // for gaps in data
-	curve = d3.curveLinear, // method of interpolation between points
-	marginTop = 20, // top margin, in pixels
-	marginRight = 30, // right margin, in pixels
-	marginBottom = 30, // bottom margin, in pixels
-	marginLeft = 40, // left margin, in pixels
-	width = 640, // outer width, in pixels
-	height = 400, // outer height, in pixels
-	xType = d3.scaleUtc, // type of x-scale
-	xDomain, // [xmin, xmax]
-	xRange = [marginLeft, width - marginRight], // [left, right]
-	yType = d3.scaleLinear, // type of y-scale
-	yDomain, // [ymin, ymax]
-	yRange = [height - marginBottom, marginTop], // [bottom, top]
-	yFormat, // a format specifier string for the y-axis
-	yLabel, // a label for the y-axis
-	zDomain, // array of z-values
-	color = "currentColor", // stroke color of line, as a constant or a function of *z*
-	strokeLinecap, // stroke line cap of line
-	strokeLinejoin, // stroke line join of line
-	strokeWidth = 1.5, // stroke width of line
-	strokeOpacity, // stroke opacity of line
-	mixBlendMode = "multiply", // blend mode of lines
-	voronoi // show a Voronoi overlay? (for debugging)
-  } = {}) {
-	// Compute values.
-	const X = d3.map(data, x);
-	const Y = d3.map(data, y);
-	const Z = d3.map(data, z);
-	const O = d3.map(data, d => d);
-	if (defined === undefined) defined = (d, i) => !isNaN(X[i]) && !isNaN(Y[i]);
-	const D = d3.map(data, defined);
-  
-	// Compute default domains, and unique the z-domain.
-	if (xDomain === undefined) xDomain = d3.extent(X);
-	if (yDomain === undefined) yDomain = [0, d3.max(Y, d => typeof d === "string" ? +d : d)];
-	if (zDomain === undefined) zDomain = Z;
-	zDomain = new d3.InternSet(zDomain);
-  
-	// Omit any data not present in the z-domain.
-	const I = d3.range(X.length).filter(i => zDomain.has(Z[i]));
-  
-	// Construct scales and axes.
-	const xScale = xType(xDomain, xRange);
-	const yScale = yType(yDomain, yRange);
-	const xAxis = d3.axisBottom(xScale).ticks(width / 80).tickSizeOuter(0);
-	const yAxis = d3.axisLeft(yScale).ticks(height / 60, yFormat);
-  
-	// Compute titles.
-	const T = title === undefined ? Z : title === null ? null : d3.map(data, title);
-  
-	// Construct a line generator.
-	const line = d3.line()
-		.defined(i => D[i])
-		.curve(curve)
-		.x(i => xScale(X[i]))
-		.y(i => yScale(Y[i]));
-  
-	const svg = d3.create("svg")
-		.attr("width", width)
-		.attr("height", height)
-		.attr("viewBox", [0, 0, width, height])
-		.attr("style", "max-width: 100%; height: auto; height: intrinsic;")
-		.style("-webkit-tap-highlight-color", "transparent")
-		.on("pointerenter", pointerentered)
-		.on("pointermove", pointermoved)
-		.on("pointerleave", pointerleft)
-		.on("touchstart", event => event.preventDefault());
-  
-	svg.append("g")
-		.attr("transform", `translate(0,${height - marginBottom})`)
-		.call(xAxis);
-  
-	svg.append("g")
-		.attr("transform", `translate(${marginLeft},0)`)
-		.call(yAxis)
-		.call(g => g.select(".domain").remove())
-		.call(voronoi ? () => {} : g => g.selectAll(".tick line").clone()
-			.attr("x2", width - marginLeft - marginRight)
-			.attr("stroke-opacity", 0.1))
-		.call(g => g.append("text")
-			.attr("x", -marginLeft)
-			.attr("y", 10)
-			.attr("fill", "currentColor")
-			.attr("text-anchor", "start")
-			.text(yLabel));
-  
-	const path = svg.append("g")
-		.attr("fill", "none")
-		.attr("stroke", typeof color === "string" ? color : null)
-		.attr("stroke-linecap", strokeLinecap)
-		.attr("stroke-linejoin", strokeLinejoin)
-		.attr("stroke-width", strokeWidth)
-		.attr("stroke-opacity", strokeOpacity)
-	  .selectAll("path")
-	  .data(d3.group(I, i => Z[i]))
-	  .join("path")
-		.style("mix-blend-mode", mixBlendMode)
-		.attr("stroke", typeof color === "function" ? ([z]) => color(z) : null)
-		.attr("d", ([, I]) => line(I));
-  
-	const dot = svg.append("g")
-		.attr("display", "none");
-  
-	dot.append("circle")
-		.attr("r", 2.5);
-  
-	dot.append("text")
-		.attr("font-family", "sans-serif")
-		.attr("font-size", 10)
-		.attr("text-anchor", "middle")
-		.attr("y", -8);
-  
-	function pointermoved(event) {
-	  const [xm, ym] = d3.pointer(event);
-	  const i = d3.least(I, i => Math.hypot(xScale(X[i]) - xm, yScale(Y[i]) - ym)); // closest point
-	  path.style("stroke", ([z]) => Z[i] === z ? null : "#ddd").filter(([z]) => Z[i] === z).raise();
-	  dot.attr("transform", `translate(${xScale(X[i])},${yScale(Y[i])})`);
-	  if (T) dot.select("text").text(T[i]);
-	  svg.property("value", O[i]).dispatch("input", {bubbles: true});
-	}
-  
-	function pointerentered() {
-	  path.style("mix-blend-mode", null).style("stroke", "#ddd");
-	  dot.attr("display", null);
-	}
-  
-	function pointerleft() {
-	  path.style("mix-blend-mode", mixBlendMode).style("stroke", null);
-	  dot.attr("display", "none");
-	  svg.node().value = null;
-	  svg.dispatch("input", {bubbles: true});
-	}
-  
-	return Object.assign(svg.node(), {value: null});
-  }
 
   async function makeCoolerChart(data){
 	let width = 700;
@@ -748,12 +584,13 @@ function LineChart(data, {
 	  .attr("overflow", "visible");
   
 	// function to parse date field
-	var parseTime = d3.timeParse("%Y-%m-%d");
+	var parseTime = d3.utcParse("%Y-%m-%d");
   
 	// group all dates to get range for x axis later
 	var dates = [];
 	// group y axis values (value) of all lines to x axis (key)
 	var groupValuesByX = {};
+	
 
 	for (let key of Object.keys(data)) {
 	  data[key].forEach(bucketRecord => {
@@ -765,8 +602,9 @@ function LineChart(data, {
 	}
 
 	var availableDates = Object.keys(groupValuesByX);
-	availableDates.sort(); // sort dates in increasing order
-  
+
+	availableDates.sort(function(a, b) { return new Date(a) - new Date(b) }); // sort dates in increasing order
+	let secAvailableDates = availableDates.map((x) => (new Date(x)).getTime());
 	//get max Y axis value by searching for the highest conversion rate
 	var maxYAxisValue = -Infinity;
 	for (let key of Object.keys(data)) {
@@ -786,11 +624,11 @@ function LineChart(data, {
 	var xAxisFocus = d3
 	  .axisBottom(xFocus)
 	  .ticks(10)
-	  .tickFormat(d3.timeFormat("%e %b %Y"));
+	  .tickFormat(d3.timeFormat("%b %e %Y"));
 	var xAxisContext = d3
 	  .axisBottom(xContext)
 	  .ticks(10)
-	  .tickFormat(d3.timeFormat("%e %b %Y"));
+	  .tickFormat(d3.timeFormat("%b %e %Y"));
   
 	// create the one y axis to be rendered
 	var yAxisFocus = d3.axisLeft(yFocus).tickFormat(d => d);
@@ -1065,11 +903,13 @@ function LineChart(data, {
 	  tooltip.attr("display", null);
 	  var mouse = d3.mouse(this);
 	  var dateOnMouse = xFocus.invert(mouse[0]);
-	  var nearestDateIndex = d3.bisect(availableDates, dateOnMouse.toString());
+	  var nearestDateIndex = d3.bisect(secAvailableDates, (new Date(dateOnMouse)).getTime());
+	  nearestDateIndex = Math.min(Math.max(nearestDateIndex, 0), availableDates.length-1);
 	  // get the dates on either of the mouse cord
-	  var d0 = new Date(availableDates[nearestDateIndex - 1]);
+	  var d0 = new Date(availableDates[Math.max(nearestDateIndex - 1, 0)]);
 	  var d1 = new Date(availableDates[nearestDateIndex]);
 	  var closestDate;
+
 	  if (d0 < xFocus.domain()[0]) {
 		closestDate = d1;
 	  } else if (d1 > xFocus.domain()[1]) {
@@ -1078,7 +918,7 @@ function LineChart(data, {
 		// decide which date is closest to the mouse
 		closestDate = dateOnMouse - d0 > d1 - dateOnMouse ? d1 : d0;
 	  }
-  
+
 	  var nearestDateYValues = groupValuesByX[closestDate];
 	  var nearestDateXCord = xFocus(new Date(closestDate));
   
@@ -1139,322 +979,6 @@ function LineChart(data, {
 	return svg.node()
   }
   
-  async function makeCoolChart(data){
-	let width = 700;
-	let height = 500;
-	var svg = d3.create("svg")
-		.attr("width", width)
-		.attr("height", height)
-	
-	/*
-	Brush & Zoom area chart block to work with mulit-line charts.
-	Combining d3-brush and d3-zoom to implement Focus + Context.
-  
-	The focus chart is the main larger one where the zooming occurs.
-	The context chart is the smaller one below where the brush is used to specify a focused area.
-	*/
-  
-	// sets margins for both charts
-	var focusChartMargin = { top: 20, right: 20, bottom: 170, left: 60 };
-	var contextChartMargin = { top: 360, right: 20, bottom: 90, left: 60 };
-  
-	// width of both charts
-	var chartWidth = width - focusChartMargin.left - focusChartMargin.right;
-  
-	// height of either chart
-	var focusChartHeight = height - focusChartMargin.top - focusChartMargin.bottom;
-	var contextChartHeight = height - contextChartMargin.top - contextChartMargin.bottom;
-  
-	// bootstraps the d3 parent selection
-	svg
-	  .append("svg")
-	  .attr("width", chartWidth + focusChartMargin.left + focusChartMargin.right)
-	  .attr("height", focusChartHeight + focusChartMargin.top + focusChartMargin.bottom)
-	  .append("g")
-	  .attr("transform", "translate(" + focusChartMargin.left + "," + focusChartMargin.top + ")");
-  
-	// function to parse date field
-	var parseTime = d3.timeParse("%Y-%m-%d");
-  
-	//group all dates to get range for x axis later
-	var dates = [];
-	for (let key of Object.keys(data)) {
-	  data[key].forEach(bucketRecord => {
-		dates.push(parseTime(bucketRecord.readableTime));
-	  });
-	}
-  
-	//get max Y axis value by searching for the highest conversion rate
-	var maxYAxisValue = -Infinity;
-	for (let key of Object.keys(data)) {
-	  let maxYAxisValuePerBucket = Math.ceil(d3.max(data[key], d => d["elo"]));
-	  maxYAxisValue = Math.max(maxYAxisValuePerBucket, maxYAxisValue);
-	}
-  
-	// set the height of both y axis
-	var yFocus = d3.scaleLinear().range([focusChartHeight, 0]);
-	var yContext = d3.scaleLinear().range([contextChartHeight, 0]);
-  
-	// set the width of both x axis
-	var xFocus = d3.scaleTime().range([0, chartWidth]);
-	var xContext = d3.scaleTime().range([0, chartWidth]);
-  
-	// create both x axis to be rendered
-	var xAxisFocus = d3
-	  .axisBottom(xFocus)
-	  .ticks(10)
-	  .tickFormat(d3.timeFormat("%e %b %Y"));
-	var xAxisContext = d3
-	  .axisBottom(xContext)
-	  .ticks(10)
-	  .tickFormat(d3.timeFormat("%e %b %Y"));
-  
-	// create the one y axis to be rendered
-	var yAxisFocus = d3.axisLeft(yFocus).tickFormat(d => d);
-  
-	// build brush
-	var brush = d3
-	  .brushX()
-	  .extent([
-		[0, -10],
-		[chartWidth, contextChartHeight],
-	  ])
-	  .on("brush end", brushed);
-  
-	// build zoom for the focus chart
-	// as specified in "filter" - zooming in/out can be done by pinching on the trackpad while mouse is over focus chart
-	// zooming in can also be done by double clicking while mouse is over focus chart
-	var zoom = d3
-	  .zoom()
-	  .scaleExtent([1, Infinity])
-	  .translateExtent([
-		[0, 0],
-		[chartWidth, focusChartHeight],
-	  ])
-	  .extent([
-		[0, 0],
-		[chartWidth, focusChartHeight],
-	  ])
-	  .on("zoom", zoomed)
-	  .filter(() => d3.event.ctrlKey || d3.event.type === "dblclick" || d3.event.type === "mousedown");
-  
-	// create a line for focus chart
-	var lineFocus = d3
-	  .line()
-	  .x(d => xFocus(parseTime(d.readableTime)))
-	  .y(d => yFocus(d.elo));
-  
-	// create line for context chart
-	var lineContext = d3
-	  .line()
-	  .x(d => xContext(parseTime(d.readableTime)))
-	  .y(d => yContext(d.elo));
-  
-	// es lint disabled here so react won't warn about not using variable "clip"
-	/* eslint-disable */
-  
-	// clip is created so when the focus chart is zoomed in the data lines don't extend past the borders
-	var clip = svg
-	  .append("defs")
-	  .append("svg:clipPath")
-	  .attr("id", "clip")
-	  .append("svg:rect")
-	  .attr("width", chartWidth)
-	  .attr("height", focusChartHeight)
-	  .attr("x", 0)
-	  .attr("y", 0);
-  
-	// append the clip
-	var focusChartLines = svg
-	  .append("g")
-	  .attr("class", "focus")
-	  .attr("transform", "translate(" + focusChartMargin.left + "," + focusChartMargin.top + ")")
-	  .attr("clip-path", "url(#clip)");
-  
-	/* eslint-enable */
-  
-	// create focus chart
-	var focus = svg
-	  .append("g")
-	  .attr("class", "focus")
-	  .attr("transform", "translate(" + focusChartMargin.left + "," + focusChartMargin.top + ")");
-  
-	// create context chart
-	var context = svg
-	  .append("g")
-	  .attr("class", "context")
-	  .attr("transform", "translate(" + contextChartMargin.left + "," + (contextChartMargin.top + 50) + ")");
-  
-	// add data info to axis
-	xFocus.domain(d3.extent(dates));
-	yFocus.domain([800, maxYAxisValue]);
-	xContext.domain(xFocus.domain());
-	yContext.domain(yFocus.domain());
-  
-	// add axis to focus chart
-	focus
-	  .append("g")
-	  .attr("class", "x-axis")
-	  .attr("transform", "translate(0," + focusChartHeight + ")")
-	  .call(xAxisFocus);
-	focus
-	  .append("g")
-	  .attr("class", "y-axis")
-	  .call(yAxisFocus);
-  
-	// get list of bucket names
-	var bucketNames = [];
-	for (let key of Object.keys(data)) {
-	  bucketNames.push(key);
-	}
-  
-	// match colors to bucket name
-	var colors = d3
-	  .scaleOrdinal()
-	  .domain(bucketNames)
-	  .range(["#3498db", "#3cab4b", "#e74c3c", "#73169e", "#2ecc71"]);
-  
-	// go through data and create/append lines to both charts
-	for (let key of Object.keys(data)) {
-	  let bucket = data[key];
-	  focusChartLines
-		.append("path")
-		.datum(bucket)
-		.attr("class", "line")
-		.attr("fill", "none")
-		.attr("stroke", d => colors(key))
-		.attr("stroke-width", 1.5)
-		.attr("d", lineFocus);
-	  context
-		.append("path")
-		.datum(bucket)
-		.attr("class", "line")
-		.attr("fill", "none")
-		.attr("stroke", d => colors(key))
-		.attr("stroke-width", 1.5)
-		.attr("d", lineContext);
-	}
-  
-	// add x axis to context chart (y axis is not needed)
-	context
-	  .append("g")
-	  .attr("class", "x-axis")
-	  .attr("transform", "translate(0," + contextChartHeight + ")")
-	  .call(xAxisContext);
-  
-	// add bush to context chart
-	var contextBrush = context
-	  .append("g")
-	  .attr("class", "brush")
-	  .call(brush);
-  
-	// style brush resize handle
-	var brushHandlePath = d => {
-	  var e = +(d.type === "e"),
-		x = e ? 1 : -1,
-		y = contextChartHeight + 10;
-	  return (
-		"M" +
-		0.5 * x +
-		"," +
-		y +
-		"A6,6 0 0 " +
-		e +
-		" " +
-		6.5 * x +
-		"," +
-		(y + 6) +
-		"V" +
-		(2 * y - 6) +
-		"A6,6 0 0 " +
-		e +
-		" " +
-		0.5 * x +
-		"," +
-		2 * y +
-		"Z" +
-		"M" +
-		2.5 * x +
-		"," +
-		(y + 8) +
-		"V" +
-		(2 * y - 8) +
-		"M" +
-		4.5 * x +
-		"," +
-		(y + 8) +
-		"V" +
-		(2 * y - 8)
-	  );
-	};
-  
-	var brushHandle = contextBrush
-	  .selectAll(".handle--custom")
-	  .data([{ type: "w" }, { type: "e" }])
-	  .enter()
-	  .append("path")
-	  .attr("class", "handle--custom")
-	  .attr("stroke", "#000")
-	  .attr("cursor", "ew-resize")
-	  .attr("d", brushHandlePath);
-  
-	// overlay the zoom area rectangle on top of the focus chart
-	svg
-	  .append("rect")
-	  .attr("cursor", "move")
-	  .attr("fill", "none")
-	  .attr("pointer-events", "all")
-	  .attr("class", "zoom")
-	  .attr("width", chartWidth)
-	  .attr("height", focusChartHeight)
-	  .attr("transform", "translate(" + focusChartMargin.left + "," + focusChartMargin.top + ")")
-	  .call(zoom);
-  
-	contextBrush.call(brush.move, [0, chartWidth / 2]);
-  
-	// focus chart x label
-	focus
-	  .append("text")
-	  .attr("transform", "translate(" + chartWidth / 2 + " ," + (focusChartHeight + focusChartMargin.top + 25) + ")")
-	  .style("text-anchor", "middle")
-	  .style("font-size", "18px")
-	  .text("Time (UTC)");
-  
-	// focus chart y label
-	focus
-	  .append("text")
-	  .attr("text-anchor", "middle")
-	  .attr("transform", "translate(" + (-focusChartMargin.left + 20) + "," + focusChartHeight / 2 + ")rotate(-90)")
-	  .style("font-size", "18px")
-	  .text("Elo");
-  
-	function brushed() {
-	  if (d3.event.sourceEvent && d3.event.sourceEvent.type === "zoom") return; // ignore brush-by-zoom
-	  var s = d3.event.selection || xContext.range();
-	  xFocus.domain(s.map(xContext.invert, xContext));
-	  focusChartLines.selectAll(".line").attr("d", lineFocus);
-	  focus.select(".x-axis").call(xAxisFocus);
-	  svg.select(".zoom").call(zoom.transform, d3.zoomIdentity.scale(chartWidth / (s[1] - s[0])).translate(-s[0], 0));
-	  brushHandle
-		.attr("display", null)
-		.attr("transform", (d, i) => "translate(" + [s[i], -contextChartHeight - 20] + ")");
-	}
-  
-	function zoomed() {
-	  if (d3.event.sourceEvent && d3.event.sourceEvent.type === "brush") return; // ignore zoom-by-brush
-	  var t = d3.event.transform;
-	  xFocus.domain(t.rescaleX(xContext).domain());
-	  focusChartLines.selectAll(".line").attr("d", lineFocus);
-	  focus.select(".x-axis").call(xAxisFocus);
-	  var brushSelection = xFocus.range().map(t.invertX, t);
-	  context.select(".brush").call(brush.move, brushSelection);
-	  brushHandle
-		.attr("display", null)
-		.attr("transform", (d, i) => "translate(" + [brushSelection[i], -contextChartHeight - 20] + ")");
-	}
-	
-	return svg.node()
-  }
 
 async function showVisuals(){
 	plotPlayerPoints();
@@ -3461,13 +2985,9 @@ class Board{
 	reducePossibleStates(currentStates, givenSockets, adjSide) {
 		let newStates = [];
 		for (let i = 0; i < currentStates.length; i++) {
-			// console.log(adjSide);
 			let curState = currentStates[i];
-			// console.log(curState);//1
 			let curConn = this.arrayTemplateConnections[curState];//does this makes sense
-			// console.log(curConn);//['111', '111', '111', '101']
 			let singleSide = curConn[adjSide];
-			// console.log(singleSide);//"101"
 			if (givenSockets.includes(singleSide)) {
 				newStates.push(curState);
 			}

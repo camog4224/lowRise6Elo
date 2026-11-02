@@ -1,0 +1,46 @@
+{
+  "playerInfo": {
+    "Alice": {
+      "euid": "local-alice",
+      "elo": [1000, 1016, 1002],
+      "currentElo": 1002,
+      "victories": [true, false],
+      "wins": 1,
+      "losses": 1,
+      "gamesPlayed": 2,
+      "time": [1735689600000, 1735776000000, 1735862400000],
+      "readableTime": [
+        "Wed Jan 01 2025",
+        "Thu Jan 02 2025",
+        "Fri Jan 03 2025"
+      ],
+      "opponents": ["Bob", "Bob"]
+    },
+    "Bob": {
+      "euid": "local-bob",
+      "elo": [1000, 984, 998],
+      "currentElo": 998,
+      "victories": [false, true],
+      "wins": 1,
+      "losses": 1,
+      "gamesPlayed": 2,
+      "time": [1735689600000, 1735776000000, 1735862400000],
+      "readableTime": [
+        "Wed Jan 01 2025",
+        "Thu Jan 02 2025",
+        "Fri Jan 03 2025"
+      ],
+      "opponents": ["Alice", "Alice"]
+    }
+  },
+  "movies": {
+    "Local Test Movie": {
+      "euid": "local-alice",
+      "title": "Local Test Movie",
+      "supporters": ["Alice"],
+      "critics": ["Bob"],
+      "readableTime": "Wed Jan 01 2025",
+      "score": 0
+    }
+  }
+}

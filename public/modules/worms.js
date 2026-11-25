@@ -235,14 +235,14 @@ class Segment {
 	/**
 	 * draws segment as line from its two positions
 	 */
-	draw() {
+	draw(color = "#000000") {
 		drawLin(
 			this.ct,
 			this.pos1.x,
 			this.pos1.y,
 			this.pos2.x,
 			this.pos2.y,
-			"#000000",
+			color,
 			this.width
 		);
 	}
@@ -311,7 +311,7 @@ class Appendage {
 	 */
 	applyForce(force) {
 		this.acceleration = addV(this.acceleration, force);
-		if (this.acceleration.length > accelConst*this.speed) {
+		if (this.acceleration.length > accelConst) {
 			this.acceleration.setMag(accelConst);
 		}
 	}
@@ -323,6 +323,7 @@ class Appendage {
 		let minSpeed = this.speed;
 		let maxSpeed = this.speed*2;
 		this.velocity = addV(this.velocity, this.acceleration);
+		this.acceleration = new Vector(0, 0);
 		if (this.velocity.length > maxSpeed) {
 			this.velocity.setMag(maxSpeed);
 		} else if (this.velocity.length < minSpeed) {
@@ -389,6 +390,7 @@ class Fleet {
 		
 		/**@type {Quad} */
 		this.storage = new Quad("root", null, this.Apps, maxW, maxH, this.ct);
+		this.outsideApps = [];
 		
 		this.maxWidth = maxW;
 		this.maxHeight = maxH;
@@ -405,6 +407,9 @@ class Fleet {
 	 */
 	updateQuad(){
 		this.storage = new Quad("root", null, this.Apps, this.maxWidth, this.maxHeight, this.ct);
+		this.outsideApps = this.Apps.filter(
+			(app) => !this.storage.checkInside(app.head.pos2)
+		);
 	}
 
 	/**
@@ -439,35 +444,36 @@ class Fleet {
 
 				avPos.add(tempApp.head.pos2); //cohesion
 				let connect = subV(curApp.head.pos2, tempApp.head.pos2);
-				connect.multMag(1 / connect.length);
-				avDir.add(connect); //seperation
-				avDir1.add(tempApp.head.dir.normal()); //align
+				if (connect.length > 0) {
+					connect.setMag(1);
+					avDir.add(connect); //seperation
+				}
+				if (tempApp.head.dir.length > 0) {
+					avDir1.add(tempApp.head.dir.normal()); //align
+				}
 			}
 
 			let totalForce = new Vector(0, 0);
 
-			avDir.multMag(sepConst);//use consts or .9
-			let sepSteer = subV(avDir, curApp.velocity);
-
-			totalForce.add(sepSteer);
-
 			avPos.multMag(1 / nearbyApps.length);
-
 			let coh = subV(avPos, curApp.head.pos2);
-			coh.multMag(coConst);//use consts or .3
-			let cohSteer = subV(coh, curApp.velocity);
+			const maxSpeed = curApp.speed * 2;
+			const steer = (direction, weight) => {
+				if (direction.length === 0 || weight === 0) {
+					return new Vector(0, 0);
+				}
+				direction.setMag(maxSpeed);
+				const force = subV(direction, curApp.velocity);
+				if (force.length > accelConst) {
+					force.setMag(accelConst);
+				}
+				force.multMag(weight);
+				return force;
+			};
 
-			totalForce.add(cohSteer);
-
-			avDir1 = avDir1.normal();
-			let temp = curApp.velocity.normal(); // maybe change to dir
-			let align = subV(avDir1, temp);
-
-			align.multMag(alConst);//use consts or 5
-
-			let alignSteer = subV(align, curApp.velocity);
-
-			totalForce.add(alignSteer);
+			totalForce.add(steer(avDir, sepConst / (Number(sSlider.max) * sepMult)));
+			totalForce.add(steer(coh, coConst / (Number(cSlider.max) * coMult)));
+			totalForce.add(steer(avDir1, alConst / (Number(aSlider.max) * alMult)));
 
 			curApp.applyForce(totalForce);
 		}
@@ -485,23 +491,19 @@ class Fleet {
 			console.log("ERROR");
 			return [];
 		}
-		let tempRoot = this.storage.search(app.head.pos2);
-		if (tempRoot == null) {
-			return [];
-		}
-
 		let pos = new Vector(app.head.pos2.x - range, app.head.pos2.y - range);
 		if (percChecked.checked) {
 			drawSRect(ctxW, pos.x, pos.y, 2 * range, 2 * range, "#0000ff");
 		}
 
-		let nearbyPossibleApps = tempRoot.getCloseby(pos, 2 * range, 2 * range);
+		let nearbyPossibleApps = this.storage.getCloseby(pos, 2 * range, 2 * range);
+		nearbyPossibleApps = nearbyPossibleApps.concat(this.outsideApps);
 
 		// for(let i = 0; i < this.Apps.length; i++){
 		for (let i = 0; i < nearbyPossibleApps.length; i++) {
 			// let tempApp = this.Apps[i];
 			let tempApp = nearbyPossibleApps[i];
-			if (tempApp.id == app.id) {
+			if (tempApp === app) {
 				continue;
 			}
 
@@ -694,20 +696,13 @@ class Quad {
 	 * @returns {Array<Appendage>}
 	 */
 	getCloseby(pos, w, h) {
-		// let found = [];
 		if (!this.intersect(pos, w, h)) {
-			// return found;
 			return [];
 		}
-		//also check if range goes past borders
-		if (this.totallyWithin(pos, w, h) == false) {
-			if (this.parent == null) {
-				return this.elements;
-			}
-			return this.parent.getCloseby(pos, w, h);
-		} else {
-			return this.elements;
+		if (this.kids.length > 0) {
+			return this.kids.flatMap((kid) => kid.getCloseby(pos, w, h));
 		}
+		return this.elements;
 	}
 }
 

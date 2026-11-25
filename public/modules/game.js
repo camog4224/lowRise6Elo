@@ -6,7 +6,7 @@ let gameLeftCanvasContext = gameLCanvas.getContext("2d");
 let gameRightCanvas = document.getElementById("gameRCanvas");
 let gameRightCanvasContext = gameRCanvas.getContext("2d");
 
-let getSelectedFoW = document.querySelector('input[name="showFow"]:checked');
+let getSelectedGameView = document.querySelector('input[name="gameView"]:checked');
 
 class Border{
 	/**
@@ -62,7 +62,7 @@ class Border{
 	 * @param {*} ctx - canvas context border is displayed on
 	 */
 	draw(ctx){
-		if(this.seen == true || getSelectedFoW.value == "fowFull"){
+		if(this.seen == true || getSelectedGameView.value == "all"){
 			drawLin(ctx, this.start.x, this.start.y, this.end.x, this.end.y, this.c, this.width);
 			drawCirc(ctx, this.start.x, this.start.y, 3, "black");
 			drawCirc(ctx, this.end.x, this.end.y, 3, "black");
@@ -112,9 +112,12 @@ class User{
 	 * @param {*} ctx - canvas context to draw user onto
 	 */
 	draw(ctx){
-		let dirLen = 50;
-		// this.drawRays();
 		this.drawLooks(ctx);
+		this.drawPlayer(ctx);
+	}
+
+	drawPlayer(ctx){
+		let dirLen = 50;
 		drawLin(ctx, this.x, this.y, this.x + this.facing.x*dirLen, this.y + this.facing.y*dirLen, "red", 5);
 		drawCirc(ctx, this.x, this.y, this.size, "black");
 	}
@@ -172,13 +175,12 @@ class User{
 	 * draws rays that hit something
 	 */
 	drawLooks(ctx){
+		if (getSelectedGameView.value === "worms") {
+			return;
+		}
 		for(let i = 0; i < this.lookVs.length; i++){
 			let tempV = this.lookVs[i];
-			if(getSelectedFoW.value == "fowBP"){
-				drawCirc(ctx, this.x + tempV.x, this.y + tempV.y, 1, "black");
-			}else{
-				drawLin(ctx, this.x, this.y, this.x + tempV.x, this.y + tempV.y, "yellow", 1);
-			}
+			drawLin(ctx, this.x, this.y, this.x + tempV.x, this.y + tempV.y, "yellow", 1);
 		}
 	}
 }
@@ -204,6 +206,7 @@ class Game{
 		this.bords = null;
 		/**@type {Fleet}*/
 		this.fleet = null;
+		this.hitSegments = new Set();
 		this.mainLoop = null;
 		
 		this.ctxL = ctL;
@@ -228,7 +231,7 @@ class Game{
 		this.user = new User(this.canvasLWidth/2, this.canvasLHeight/2, 150);
 		this.bords = [];
 		this.makeBorders();
-		this.fleet = new Fleet(30, 3, this.canvasLWidth, this.canvasLHeight, this.ctxL, this.canvasL, 5);
+		this.fleet = new Fleet(30, 8, this.canvasLWidth, this.canvasLHeight, this.ctxL, this.canvasL, 5);
 		this.mainLoop = setInterval(this.updateGame.bind(this), 50);//idk?
 	}
 
@@ -238,81 +241,46 @@ class Game{
 	checkIntersections(){
 		this.user.lookVs = [];
 		this.user.ObjectColors = [];
+		this.hitSegments.clear();
 		for(let i = 0; i < this.bords.length; i++){
-			this.bords[i].seen = !getSelectedFoW.value == "fowSB";
+			this.bords[i].seen = getSelectedGameView.value === "all";
 		}
 		//for every ray
 		for(let i = 0; i < this.user.rays.length; i++){
 			let tempRay = this.user.rays[i];
-			let intersectingPoints = [];
-			// let intersectingObjects = [];
-			//for every wall
-			// for(let j = 0; j < this.bords.length; j++){//include worm segments in this for loop
-			// 	let cords = this.bords[j].intersects(tempRay.start, tempRay.end);
-			// 	if(cords.length > 0){
-			// 		intersectingPoints.push([cords, j]);
-			// 		intersectingObjects.push([cords, this.bords[j]]);//tracks where thing was hit, and what it is
-			// 	}
-			// }
-			//for every worm
-			for(let j = 0; j < this.fleet.storage.elements.length; j++){
-				let tempApp = this.fleet.storage.elements[j];
+			let closestHit = null;
+			let closestDist = Infinity;
+			for(let j = 0; j < this.fleet.Apps.length; j++){
+				let tempApp = this.fleet.Apps[j];
 				//for every worm segment
 				for(let k = 0; k < tempApp.segments.length; k++){
 					let tempSeg = tempApp.segments[k];
 					let cords = tempRay.intersects(tempSeg.pos1, tempSeg.pos2);
 					if(cords.length > 0){
-						intersectingPoints.push([cords, j, k, tempApp.color]);
-						// intersectingObjects.push([cords, k, tempApp]);
+						let distance = Math.hypot(
+							cords[0] - this.user.x,
+							cords[1] - this.user.y
+						);
+						if (distance < closestDist) {
+							closestDist = distance;
+							closestHit = {
+								point: cords,
+								app: tempApp,
+								segment: tempSeg,
+							};
+						}
 					}
 				}
 			}
-			let closestIndex = 0;
-			let closestDist = 10000;
-			let bordIndex = 0;
-			let seenApp = false;//if closest thing is an app
-			for(let j = 0; j < intersectingPoints.length; j++){
-				//if one of the segments in an appendage is seen, draw the whole
-				//worm, but not muliple times
-				let tempCords = intersectingPoints[j][0];
-				let tempV = new Vector(this.x - tempCords[0], this.y - tempCords[1]);
-				if(tempV.length < closestDist){
-					closestIndex = j;
-					closestDist = tempV.length;
-					if(intersectingPoints[j].length != 4){//not appendage
-						bordIndex = intersectingPoints[j][1];
-						seenApp = false;
-					}else{
-						seenApp = true;
-					}
-				}
-			}
-			if(intersectingPoints.length > 0){
-				let tempCords = intersectingPoints[closestIndex][0];
-				let newV = new Vector(tempCords[0] - this.user.x, tempCords[1] - this.user.y);
-				if(seenApp == false && this.bords.length > 0){
-					this.bords[bordIndex].seen = true;
-				}
+			if(closestHit !== null){
+				let newV = new Vector(
+					closestHit.point[0] - this.user.x,
+					closestHit.point[1] - this.user.y
+				);
 				this.user.lookVs.push(newV);
-				this.user.ObjectColors.push(intersectingPoints[closestIndex][3]);
+				this.user.ObjectColors.push(closestHit.app.color);
+				this.hitSegments.add(closestHit.segment);
 			}
-
-			// for(let j = 0; j < intersectingObjects.length; j++){
-			// 	//if one of the segments in an appendage is seen, draw the whole
-			// 	//worm, but not muliple times
-			// 	let tempCords = intersectingObjects[j][0];
-			// 	let tempV = new Vector(this.gameUser.x - tempCords[0], this.gameUser.y - tempCords[1]);
-			// 	if(tempV.length < closestDist){
-			// 		closestIndex = j;
-			// 		closestDist = tempV.length;
-			// 		if(intersectingObjects[j].length == 2){//wall
-			// 			let tempWall = intersectingObjects[j][1];
-			// 		}else{//worm segment
-			// 			let tempApp = intersectingObjects[j][2];
-			// 		}
-			// 	}
-			// }
-
 		}
 		
 	}
@@ -324,12 +292,19 @@ class Game{
 		clearGraph(this.ctxL, this.canvasL);
 		clearGraph(this.ctxR, this.canvasR);
 		this.fleet.update(false);
-		if(getSelectedFoW.value == "fowFull" || getSelectedFoW.value == "fowSB"){
+		this.updateFow();
+		if(getSelectedGameView.value === "all"){
 			this.drawBorders();
 		}
-		this.updateFow();
 		this.checkIntersections();
-		this.user.draw(this.ctxL);
+		if (getSelectedGameView.value !== "worms") {
+			this.user.drawLooks(this.ctxL);
+		}
+		if (getSelectedGameView.value === "all" || getSelectedGameView.value === "worms") {
+			this.fleet.Apps.forEach((app) => app.draw());
+		}
+		this.hitSegments.forEach((segment) => segment.draw("#ff0000"));
+		this.user.drawPlayer(this.ctxL);
 		this.drawRenderRects();
 	}
 
@@ -379,7 +354,7 @@ class Game{
 		for(let i = 0; i < this.bords.length; i++){
 			let start = new Vector(Math.random()*this.canvasLWidth, Math.random()*this.canvasLHeight);
 			let end = new Vector(Math.random()*this.canvasLWidth, Math.random()*this.canvasLHeight);
-			this.bords[i] = new Border(start, end, 5, "black", getSelectedFoW.value == "fowSB");
+			this.bords[i] = new Border(start, end, 5, "black", false);
 		}
 	}
 
@@ -396,7 +371,7 @@ class Game{
 	 * updates field of view of user to current slider value
 	 */
 	updateFow(){
-		getSelectedFoW = document.querySelector('input[name="showFow"]:checked');
+		getSelectedGameView = document.querySelector('input[name="gameView"]:checked');
 	}
 
 	/**

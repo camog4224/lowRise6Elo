@@ -2,7 +2,7 @@
  * Initializes worm tab
  */
 function initWorms() {
-	wormFleet = new Fleet(300, 3, wormWidth, wormHeight, ctxW, wormCanvas, 10);
+	wormFleet = new Fleet(300, 8, wormWidth, wormHeight, ctxW, wormCanvas, 10);
 	wormRunApp = setInterval(updateWorms, 100);
 	wormCounter = 0;
 }
